@@ -69,6 +69,10 @@ uint8_t ledAdjust(uint8_t value, uint8_t brightness=255) {
 }
 
 test(LED_01_Updated) {
+    // Force the LED to show a breathing pattern for this test
+    LEDStatus status(LED_PATTERN_FADE, LED_PRIORITY_IMPORTANT);
+    status.setActive();
+
     RGB.control(false);
     RGB.onChange(onChangeRGBLED);
     uint32_t start = rgbNotifyCount;
@@ -131,6 +135,8 @@ test(LED_05_StaticWhenControlled) {
 
     for (int i=0; i<3; i++)
         assertEqual(rgbInitial[i], rgbNotify[i]);
+
+    RGB.onChange(NULL);
 }
 
 test(LED_06_SettingRGBAfterOverrideShouldChangeLED) {
@@ -207,6 +213,8 @@ test(LED_10_ChangeHandlerCalled) {
 
     // then
     assertChangeHandlerCalledWith(ledAdjust(10),ledAdjust(20),ledAdjust(30));
+
+    RGB.onChange(NULL);
 }
 
 static void assertRgbLedMirrorPinsColor(const pin_t pins[3], uint16_t r, uint16_t g, uint16_t b)
@@ -243,4 +251,45 @@ test(LED_11_MirroringWorks) {
     RGB.control(false);
 }
 
-#endif
+namespace {
+
+// Handler class for RGB.onChange() that counts number of its instances
+class OnChangeHandler {
+public:
+    OnChangeHandler() {
+        ++s_count;
+    }
+
+    OnChangeHandler(const OnChangeHandler&) {
+        ++s_count;
+    }
+
+    ~OnChangeHandler() {
+        --s_count;
+    }
+
+    static unsigned instanceCount() {
+        return s_count;
+    }
+
+    void operator()(uint8_t r, uint8_t g, uint8_t b) {
+    }
+
+private:
+    static unsigned s_count;
+};
+
+unsigned OnChangeHandler::s_count = 0;
+
+} // namespace
+
+test(LED_12_NoLeakWhenOnChangeHandlerIsOverridden) {
+    RGB.onChange(OnChangeHandler());
+    assertEqual(OnChangeHandler::instanceCount(), 1);
+    RGB.onChange(OnChangeHandler());
+    assertEqual(OnChangeHandler::instanceCount(), 1); // Previous handler has been destroyed
+    RGB.onChange(nullptr);
+    assertEqual(OnChangeHandler::instanceCount(), 0); // Current handler has been destroyed
+}
+
+#endif // PLATFORM_ID >= 3

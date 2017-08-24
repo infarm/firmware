@@ -36,6 +36,7 @@
 #include "timer_hal.h"
 #include "rgbled.h"
 #include "service_debug.h"
+#include "cellular_hal.h"
 
 #include "spark_wiring_network.h"
 #include "spark_wiring_constants.h"
@@ -56,6 +57,7 @@ unsigned char wlan_profile_index;
 
 volatile uint8_t Spark_Error_Count;
 volatile uint8_t SYSTEM_POWEROFF;
+uint8_t feature_cloud_udp = 0;
 
 static struct SetThreadCurrentFunctionPointers {
     SetThreadCurrentFunctionPointers() {
@@ -121,9 +123,9 @@ void manage_network_connection()
     }
     else
     {
-        if (!SPARK_WLAN_STARTED || (spark_cloud_flag_auto_connect() && !network.connected()))
+        if (!SPARK_WLAN_STARTED || (spark_cloud_flag_auto_connect() && !network.ready()))
         {
-            INFO("Network Connect: %s", (!SPARK_WLAN_STARTED) ? "!SPARK_WLAN_STARTED" : "SPARK_CLOUD_CONNECT && !network.connected()");
+            // INFO("Network Connect: %s", (!SPARK_WLAN_STARTED) ? "!SPARK_WLAN_STARTED" : "SPARK_CLOUD_CONNECT && !network.ready()");
             network.connect();
         }
     }
@@ -285,6 +287,11 @@ void establish_cloud_connection()
             return;
         }
 
+#if PLATFORM_ID==PLATFORM_ELECTRON_PRODUCTION
+        const CellularNetProvData provider_data = cellular_network_provider_data_get(NULL);
+        CLOUD_FN(spark_set_connection_property(particle::protocol::Connection::PING, (provider_data.keepalive * 1000), nullptr, nullptr), (void)0);
+        spark_cloud_udp_port_set(provider_data.port);
+#endif
         INFO("Cloud: connecting");
         system_notify_event(cloud_status, cloud_status_connecting);
         int connect_result = spark_cloud_socket_connect();
@@ -326,6 +333,7 @@ void establish_cloud_connection()
 int cloud_handshake()
 {
 	bool udp = HAL_Feature_Get(FEATURE_CLOUD_UDP);
+    feature_cloud_udp = (uint8_t)udp;
 	bool presence_announce = !udp;
 	int err = Spark_Handshake(presence_announce);
 	return err;
@@ -391,7 +399,7 @@ void manage_cloud_connection(bool force_events)
 {
     if (spark_cloud_flag_auto_connect() == 0)
     {
-        cloud_disconnect();
+        cloud_disconnect_graceful();
     }
     else // cloud connection is wanted
     {
@@ -408,7 +416,7 @@ static void process_isr_task_queue()
 }
 
 #if Wiring_SetupButtonUX
-extern void system_handle_button_click();
+extern void system_handle_button_clicks(bool isIsr);
 #endif
 
 void Spark_Idle_Events(bool force_events/*=false*/)
@@ -423,7 +431,7 @@ void Spark_Idle_Events(bool force_events/*=false*/)
     if (!SYSTEM_POWEROFF) {
 
 #if Wiring_SetupButtonUX
-        system_handle_button_click();
+        system_handle_button_clicks(false /* isIsr */);
 #endif
         manage_serial_flasher();
 
@@ -520,8 +528,12 @@ void system_delay_ms(unsigned long ms, bool force_no_background_loop=false)
     }
 }
 
+void cloud_disconnect_graceful(bool closeSocket)
+{
+    cloud_disconnect(closeSocket, true);
+}
 
-void cloud_disconnect(bool closeSocket)
+void cloud_disconnect(bool closeSocket, bool graceful)
 {
 #ifndef SPARK_NO_CLOUD
 
@@ -535,7 +547,7 @@ void cloud_disconnect(bool closeSocket)
         }
 
         if (closeSocket)
-            spark_cloud_socket_disconnect();
+            spark_cloud_socket_disconnect(graceful);
 
         SPARK_FLASH_UPDATE = 0;
         SPARK_CLOUD_CONNECTED = 0;
@@ -580,4 +592,12 @@ uint8_t application_thread_invoke(void (*callback)(void* data), void* data, void
     APPLICATION_THREAD_CONTEXT_ASYNC_RESULT(application_thread_invoke(callback, data, reserved), 0);
     callback(data);
     return 0;
+}
+
+void cancel_connection()
+{
+    // Cancel current network connection attempt
+    network.connect_cancel(true);
+    // Abort cloud connection
+    Spark_Abort();
 }

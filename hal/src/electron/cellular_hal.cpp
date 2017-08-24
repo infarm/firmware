@@ -1,12 +1,19 @@
 #ifndef HAL_CELLULAR_EXCLUDE
 
+#include "modem/mdm_hal.h"
 #include "cellular_hal.h"
 #include "cellular_internal.h"
-#include "modem/mdm_hal.h"
 
 #define CHECK_SUCCESS(x) { if (!(x)) return -1; }
 
 static CellularCredentials cellularCredentials;
+
+static CellularNetProv cellularNetProv = CELLULAR_NETPROV_TELEFONICA;
+
+// CELLULAR_NET_PROVIDER_DATA[CELLULAR_NETPROV_MAX - 1] is the last provider record
+const CellularNetProvData CELLULAR_NET_PROVIDER_DATA[] = { DEFINE_NET_PROVIDER_DATA };
+
+#if defined(MODULAR_FIRMWARE) && MODULAR_FIRMWARE
 
 static HAL_NET_Callbacks netCallbacks = { 0 };
 
@@ -37,6 +44,22 @@ void HAL_NET_notify_can_shutdown()
         netCallbacks.notify_can_shutdown();
     }
 }
+
+void HAL_NET_SetCallbacks(const HAL_NET_Callbacks* callbacks, void* reserved)
+{
+    netCallbacks.notify_connected = callbacks->notify_connected;
+    netCallbacks.notify_disconnected = callbacks->notify_disconnected;
+    netCallbacks.notify_dhcp = callbacks->notify_dhcp;
+    netCallbacks.notify_can_shutdown = callbacks->notify_can_shutdown;
+}
+
+#else
+
+void HAL_NET_SetCallbacks(const HAL_NET_Callbacks* callbacks, void* reserved)
+{
+}
+
+#endif /* defined(MODULAR_FIRMWARE) && MODULAR_FIRMWARE */
 
 cellular_result_t  cellular_on(void* reserved)
 {
@@ -85,7 +108,7 @@ cellular_result_t  cellular_gprs_attach(CellularCredentials* connect, void* rese
         CHECK_SUCCESS(electronMDM.join(connect->apn, connect->username, connect->password));
     }
     else {
-        CHECK_SUCCESS(electronMDM.join());
+        CHECK_SUCCESS(electronMDM.join(CELLULAR_NET_PROVIDER_DATA[cellularNetProv].apn, NULL, NULL));
     }
     return 0;
 }
@@ -142,14 +165,6 @@ bool cellular_sim_ready(void* reserved)
 uint32_t HAL_NET_SetNetWatchDog(uint32_t timeOutInuS)
 {
     return 0;
-}
-
-void HAL_NET_SetCallbacks(const HAL_NET_Callbacks* callbacks, void* reserved)
-{
-    netCallbacks.notify_connected = callbacks->notify_connected;
-    netCallbacks.notify_disconnected = callbacks->notify_disconnected;
-    netCallbacks.notify_dhcp = callbacks->notify_dhcp;
-    netCallbacks.notify_can_shutdown = callbacks->notify_can_shutdown;
 }
 
 void cellular_cancel(bool cancel, bool calledFromISR, void*)
@@ -288,6 +303,18 @@ cellular_result_t cellular_resume(void* reserved)
 {
     electronMDM.resume();
     return 0;
+}
+
+cellular_result_t cellular_imsi_to_network_provider(void* reserved)
+{
+    const DevStatus* status = electronMDM.getDevStatus();
+    cellularNetProv = detail::_cellular_imsi_to_network_provider(status->imsi);
+    return 0;
+}
+
+const CellularNetProvData cellular_network_provider_data_get(void* reserved)
+{
+    return CELLULAR_NET_PROVIDER_DATA[cellularNetProv];
 }
 
 #endif // !defined(HAL_CELLULAR_EXCLUDE)

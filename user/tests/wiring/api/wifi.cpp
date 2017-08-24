@@ -78,9 +78,11 @@ test(api_wifi_selectantenna)
 
 test(api_wifi_set_credentials)
 {
-    API_COMPILE(WiFi.setCredentials("ssid)",4,"password", 8, WPA2));
-    API_COMPILE(WiFi.setCredentials("ssid)",4,"password", 8, WPA2, WLAN_CIPHER_AES));
-    API_COMPILE(WiFi.setCredentials("ssid)","password", WPA2, WLAN_CIPHER_AES));
+    bool ok = false;
+    API_COMPILE(ok = WiFi.setCredentials("ssid)",4,"password", 8, WPA2));
+    API_COMPILE(ok = WiFi.setCredentials("ssid)",4,"password", 8, WPA2, WLAN_CIPHER_AES));
+    API_COMPILE(ok = WiFi.setCredentials("ssid)","password", WPA2, WLAN_CIPHER_AES));
+    (void)ok; // avoid unused warning
 }
 
 test(api_wifi_setStaticIP)
@@ -189,6 +191,15 @@ test(api_wifi_get_credentials)
         Serial.println(ap[i].channel);
         Serial.println(ap[i].rssi);
     }
+}
+
+test(api_wifi_hostname)
+{
+    String hostname;
+    const char shostname[] = "testhostname";
+    API_COMPILE(hostname = WiFi.hostname());
+    API_COMPILE(WiFi.setHostname(hostname));
+    API_COMPILE(WiFi.setHostname(shostname));
 }
 
 #endif

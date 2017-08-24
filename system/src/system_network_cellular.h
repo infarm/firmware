@@ -61,6 +61,9 @@ protected:
         result = cellular_pdp_activate(savedCreds, NULL);
         if (result) { return; }
 
+        result = cellular_imsi_to_network_provider(NULL);
+        if (result) { return; }
+
         //DEBUG_D("savedCreds = %s %s %s\r\n", savedCreds->apn, savedCreds->username, savedCreds->password);
         result = cellular_gprs_attach(savedCreds, NULL);
         if (result) { return; }
@@ -166,5 +169,18 @@ public:
     }
 
     void set_error_count(unsigned count) override { /* n/a */ }
+
+    virtual int set_hostname(const char* hostname) override
+    {
+        return 1;
+    }
+
+    virtual int get_hostname(char* buf, size_t buf_len, bool noDefault) override
+    {
+        if (buf) {
+            buf[0] = '\0';
+        }
+        return 1;
+    }
 };
 

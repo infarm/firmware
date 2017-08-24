@@ -311,6 +311,7 @@ void system_shutdown_if_needed()
 
 int Spark_Finish_Firmware_Update(FileTransfer::Descriptor& file, uint32_t flags, void* module)
 {
+    using namespace particle::protocol;
     SPARK_FLASH_UPDATE = 0;
     TimingFlashUpdateTimeout = 0;
     //DEBUG("update finished flags=%d store=%d", flags, file.store);
@@ -318,7 +319,12 @@ int Spark_Finish_Firmware_Update(FileTransfer::Descriptor& file, uint32_t flags,
 
     hal_module_t mod;
 
-    if (flags & 1) {    // update successful
+    if ((flags & (UpdateFlag::VALIDATE_ONLY | UpdateFlag::SUCCESS)) == (UpdateFlag::VALIDATE_ONLY | UpdateFlag::SUCCESS)) {
+        res = HAL_FLASH_OTA_Validate(module ? (hal_module_t*)module : &mod, true, (module_validation_flags_t)(MODULE_VALIDATION_INTEGRITY | MODULE_VALIDATION_DEPENDENCIES_FULL), NULL);
+        return res;
+    }
+
+    if (flags & UpdateFlag::SUCCESS) {    // update successful
         if (file.store==FileTransfer::Store::FIRMWARE)
         {
             hal_update_complete_t result = HAL_FLASH_End(module ? (hal_module_t*)module : &mod);
@@ -469,8 +475,8 @@ bool module_info_to_json(appender_fn append, void* append_data, const hal_module
     // on the photon we have just one dependency, this will need generalizing for other platforms
       && json.write_attribute("d") && json.write('[');
 
-    for (unsigned int d=0; d<1 && info; d++) {
-        const module_dependency_t& dependency = info->dependency;
+    for (unsigned int d=0; d<2 && info; d++) {
+        const module_dependency_t& dependency = d == 0 ? info->dependency : info->dependency2;
         module_function_t function = module_function_t(dependency.module_function);
         if (function==MODULE_FUNCTION_NONE) // skip empty dependents
             continue;

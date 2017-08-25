@@ -109,10 +109,8 @@ common are listed here:
 | Name     | PLATFORM_ID |
 |----------|:-----------:|
 | core     | 0           |
-| gcc      | 3           |
 | photon   | 6           |
-| p1       | 8           |
-| electron | 10          |
+| P1       | 8           |
 
 The platform is specified on the command line as
 
@@ -472,6 +470,16 @@ USE_SWD=y
 and perform a clean build. For more details on SWD-only debugging
 see https://github.com/spark/firmware/pull/337
 
+
+## Compilation without Arduino Compatibility Support
+
+Arduino compatibility defines are included by default to support hundreds of libraries that have been ported from Arduino to Particle.  If those defines should cause an issue with your build, you may remove them by adding
+
+PARTICLE_NO_ARDUINO_COMPATIBILITY=y to the make command line. This requires a clean build.
+
+There should be no difference in FLASH or RAM allocation with or without these defines.
+
+
 ## Compilation without Cloud Support
 
 [Core only]
@@ -484,9 +492,12 @@ After compiling, you should see a 3000 bytes reduction in statically allocated R
 
 ## Building the `develop` branch
 
-Before the 0.4.0 firmware was released, we recommended the develop branch for early adopters to obtain the code. This is still fine for early adopters, and people that want the bleeding edge, although please keep in mind the code is untested and unreleased.
+Before the 0.4.0 firmware was released, we recommended the develop branch for early adopters
+to obtain the code. This is still fine for early adopters, and people that want the bleeding edge,
+although please keep in mind the code is untested and unreleased.
 
-Pre-releases are available in `release/vx.x.x-rc.x` branches.  Default released firmware is available as `release/vx.x.x`, which is also then duplicated to `release/stable` and `master` branches.
+The released code is available in the `latest` branch. This will eventually become the `master`
+branch once 0.4.4 is released for the Core.
 
 To build the develop branch, follow these guidelines:
 

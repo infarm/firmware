@@ -17,18 +17,17 @@
  ******************************************************************************
  */
 
-#pragma once
-
+#include "dcd_flash.h"
 #include "dcd.h"
 #include "flash_storage_impl.h"
 
-template <typename Store, unsigned sectorSize, unsigned DCD1, unsigned DCD2, uint32_t(*calculateCRC)(const void* data, size_t len)>
-class UpdateDCD : public DCD<Store, sectorSize, DCD1, DCD2, calculateCRC>
+template <typename Store, unsigned sectorSize, unsigned DCD1, unsigned DCD2>
+class UpdateDCD : public DCD<Store, sectorSize, DCD1, DCD2>
 {
 public:
     static const unsigned oldFormatOffset = 7548;
 
-    using base = DCD<Store, sectorSize, DCD1, DCD2, calculateCRC>;
+    using base = DCD<Store, sectorSize, DCD1, DCD2>;
     using Sector = typename base::Sector;
 
     UpdateDCD()
@@ -52,7 +51,7 @@ public:
 
     void initializeFromSector(const uint8_t* oldSector, Sector newSector)
     {
-        this->_writeSector(0, oldSector+oldFormatOffset, sectorSize-oldFormatOffset, NULL, newSector);
+        this->writeSector(0, oldSector+oldFormatOffset, sectorSize-oldFormatOffset, NULL, newSector);
     }
 
     inline bool isCurrent(const uint8_t* sector)
@@ -60,3 +59,7 @@ public:
         return sector[8]==0 && sector[9]==1;
     }
 };
+
+const void* dct_read_app_data (uint32_t offset);
+int dct_write_app_data(const void* data, uint32_t offset, uint32_t size);
+void dcd_migrate_data();

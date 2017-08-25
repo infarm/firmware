@@ -21,8 +21,6 @@
 #ifndef FAST_PIN_H
 #define	FAST_PIN_H
 
-#include "platforms.h"
-
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -138,7 +136,7 @@ inline int32_t pinReadFast(pin_t _pin)
 void pinResetFast(pin_t _pin);
 void pinSetFast(pin_t _pin);
 void pinReadFast(pin_t _pin);
-#elif PLATFORM_ID==PLATFORM_NEWHAL
+#elif PLATFORM==newhal
     // no need to generate a warning for newhal
     #define pinSetFast(pin) digitalWrite(pin, HIGH)
     #define pinResetFast(pin) digitalWrite(pin, LOW)

@@ -19,4 +19,4 @@
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wunused-local-typedef"
 #endif
-#include "boost_asio_impl_src_wrap.h"
+#include <boost/asio/impl/src.hpp>

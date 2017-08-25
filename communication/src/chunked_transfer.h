@@ -149,9 +149,6 @@ public:
 
 	void cancel();
 
-	size_t notify_update_done(Message& msg, Message& response, MessageChannel& channel, token_t token,
-							  uint8_t code);
-
 };
 
 }

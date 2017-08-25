@@ -25,20 +25,6 @@
 
 using particle::CompletionHandler;
 
-#ifdef USE_MBEDTLS
-#include "mbedtls/rsa.h"
-#include "mbedtls_util.h"
-#include "mbedtls_compat.h"
-#else
-# if PLATFORM_ID == 6 || PLATFORM_ID == 8
-#  include "wiced_security.h"
-#  include "crypto_open/bignum.h"
-# else
-#  include "tropicssl/rsa.h"
-#  include "tropicssl/sha1.h"
-# endif
-#endif
-
 /**
  * Handle the cryptographically secure random seed from the cloud by using
  * it to seed the stdlib PRNG.
@@ -49,28 +35,18 @@ void default_random_seed_from_cloud(unsigned int seed)
     srand(seed);
 }
 
-#if !PARTICLE_PROTOCOL || HAL_PLATFORM_CLOUD_TCP
-int decrypt_rsa(const uint8_t* ciphertext, const uint8_t* private_key, uint8_t* plaintext, int32_t plaintext_len)
+#if !defined(PARTICLE_PROTOCOL) || HAL_PLATFORM_CLOUD_TCP
+int decrypt_rsa(const uint8_t* ciphertext, const uint8_t* private_key, uint8_t* plaintext, int plaintext_len)
 {
     rsa_context rsa;
     init_rsa_context_with_private_key(&rsa, private_key);
-#ifdef USE_MBEDTLS
-    size_t size = 0; // mbedTLS wants size_t*
-    int err = mbedtls_rsa_pkcs1_decrypt(&rsa, mbedtls_default_rng, nullptr, MBEDTLS_RSA_PRIVATE, &size, ciphertext, plaintext, plaintext_len);
-    plaintext_len = size;
-#else
-# if PLATFORM_ID == 6 || PLATFORM_ID == 8
     int err = rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, &plaintext_len, ciphertext, plaintext, plaintext_len);
-# else
-    int err = rsa_pkcs1_decrypt(&rsa, RSA_PRIVATE, (int*)&plaintext_len, ciphertext, plaintext, (int)plaintext_len);
-# endif
-#endif // USE_MBEDTLS
     rsa_free(&rsa);
     return err ? -abs(err) : plaintext_len;
 }
-#endif // !PARTICLE_PROTOCOL || HAL_PLATFORM_CLOUD_TCP
+#endif
 
-#if PARTICLE_PROTOCOL
+#ifdef PARTICLE_PROTOCOL
 #include "hal_platform.h"
 
 #if HAL_PLATFORM_CLOUD_TCP
@@ -191,8 +167,9 @@ int spark_protocol_set_connection_property(ProtocolFacade* protocol, unsigned pr
 }
 int spark_protocol_command(ProtocolFacade* protocol, ProtocolCommands::Enum cmd, uint32_t data, void* reserved)
 {
-    ASSERT_ON_SYSTEM_THREAD();
-    return protocol->command(cmd, data);
+  ASSERT_ON_SYSTEM_THREAD();
+	protocol->command(cmd, data);
+	return 0;
 }
 
 bool spark_protocol_time_request_pending(ProtocolFacade* protocol, void* reserved)
@@ -206,7 +183,7 @@ system_tick_t spark_protocol_time_last_synced(ProtocolFacade* protocol, time_t* 
     return protocol->time_last_synced(tm);
 }
 
-#else // !PARTICLE_PROTOCOL
+#else // !defined(PARTICLE_PROTOCOL)
 
 #include "spark_protocol.h"
 
@@ -318,8 +295,7 @@ int spark_protocol_set_connection_property(SparkProtocol* protocol, unsigned pro
 
 int spark_protocol_command(SparkProtocol* protocol, ProtocolCommands::Enum cmd, uint32_t data, void* reserved)
 {
-    (void)reserved;
-	return protocol->command(cmd, data);
+	return 0;
 }
 
 bool spark_protocol_time_request_pending(SparkProtocol* protocol, void* reserved)

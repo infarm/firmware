@@ -19,10 +19,6 @@
 
 #pragma once
 
-#include "protocol_selector.h"
-
-#if HAL_PLATFORM_CLOUD_UDP && PARTICLE_PROTOCOL
-
 #include <string.h>
 #include "protocol_defs.h"
 #include "message_channel.h"
@@ -70,28 +66,17 @@ public:
 		return len;
 	}
 
-	virtual int command(ProtocolCommands::Enum command, uint32_t data) override
+	virtual void command(ProtocolCommands::Enum command, uint32_t data) override
 	{
-		int result = UNKNOWN;
 		switch (command)
 		{
 		case ProtocolCommands::SLEEP:
-			result = wait_confirmable();
-			break;
-		case ProtocolCommands::DISCONNECT:
-			result = wait_confirmable();
-			ack_handlers.clear();
+			sleep();
 			break;
 		case ProtocolCommands::WAKE:
 			wake();
-			result = NO_ERROR;
-			break;
-		case ProtocolCommands::TERMINATE:
-			ack_handlers.clear();
-			result = NO_ERROR;
 			break;
 		}
-		return result;
 	}
 
 
@@ -99,7 +84,7 @@ public:
 	/**
 	 * Ensures that all outstanding sent coap messages have been acknowledged.
 	 */
-	int wait_confirmable(uint32_t timeout=60000);
+	void sleep(uint32_t timeout=60000);
 
 	void wake()
 	{
@@ -110,5 +95,3 @@ public:
 
 
 }}
-
-#endif // HAL_PLATFORM_CLOUD_UDP && PARTICLE_PROTOCOL

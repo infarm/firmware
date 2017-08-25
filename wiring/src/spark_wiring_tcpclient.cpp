@@ -35,6 +35,8 @@
 
 using namespace spark;
 
+uint16_t TCPClient::_srcport = 1024;
+
 static bool inline isOpen(sock_handle_t sd)
 {
    return socket_handle_valid(sd);
@@ -44,8 +46,7 @@ TCPClient::TCPClient() : TCPClient(socket_handle_invalid())
 {
 }
 
-TCPClient::TCPClient(sock_handle_t sock) :
-        d_(std::make_shared<Data>(sock))
+TCPClient::TCPClient(sock_handle_t sock) : _sock(sock)
 {
   flush_buffer();
 }
@@ -75,10 +76,10 @@ int TCPClient::connect(IPAddress ip, uint16_t port, network_interface_t nif)
         if(Network.from(nif).ready())
         {
           sockaddr_t tSocketAddr;
-          d_->sock = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP, port, nif);
-          DEBUG("socket=%d",d_->sock);
+          _sock = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP, port, nif);
+          DEBUG("socket=%d",_sock);
 
-          if (socket_handle_valid(d_->sock))
+          if (socket_handle_valid(_sock))
           {
             flush_buffer();
 
@@ -94,11 +95,11 @@ int TCPClient::connect(IPAddress ip, uint16_t port, network_interface_t nif)
 
 
             uint32_t ot = HAL_NET_SetNetWatchDog(S2M(MAX_SEC_WAIT_CONNECT));
-            DEBUG("sock %d connect",d_->sock);
-            connected = (socket_connect(d_->sock, &tSocketAddr, sizeof(tSocketAddr)) == 0 ? 1 : 0);
-            DEBUG("sock %d connected=%d",d_->sock, connected);
+            DEBUG("_sock %d connect",_sock);
+            connected = (socket_connect(_sock, &tSocketAddr, sizeof(tSocketAddr)) == 0 ? 1 : 0);
+            DEBUG("_sock %d connected=%d",_sock, connected);
             HAL_NET_SetNetWatchDog(ot);
-            d_->remoteIP = ip;
+            _remoteIP = ip;
             if(!connected)
             {
                 stop();
@@ -115,12 +116,12 @@ size_t TCPClient::write(uint8_t b)
 
 size_t TCPClient::write(const uint8_t *buffer, size_t size)
 {
-        return status() ? socket_send(d_->sock, buffer, size) : -1;
+        return status() ? socket_send(_sock, buffer, size) : -1;
 }
 
 int TCPClient::bufferCount()
 {
-  return d_->total - d_->offset;
+  return _total - _offset;
 }
 
 int TCPClient::available()
@@ -128,32 +129,32 @@ int TCPClient::available()
     int avail = 0;
 
     // At EOB => Flush it
-    if (d_->total && (d_->offset == d_->total))
+    if (_total && (_offset == _total))
     {
         flush_buffer();
     }
 
-    if(Network.from(nif).ready() && isOpen(d_->sock))
+    if(Network.from(nif).ready() && isOpen(_sock))
     {
         // Have room
-        if ( d_->total < arraySize(d_->buffer))
+        if ( _total < arraySize(_buffer))
         {
-            int ret = socket_receive(d_->sock, d_->buffer + d_->total , arraySize(d_->buffer)-d_->total, 0);
+            int ret = socket_receive(_sock, _buffer + _total , arraySize(_buffer)-_total, 0);
             if (ret > 0)
             {
                 DEBUG("recv(=%d)",ret);
-                if (d_->total == 0) d_->offset = 0;
-                d_->total += ret;
+                if (_total == 0) _offset = 0;
+                _total += ret;
             }
         } // Have Space
-    } // WiFi.ready() && isOpen(d_->sock)
+    } // WiFi.ready() && isOpen(_sock)
     avail = bufferCount();
     return avail;
 }
 
 int TCPClient::read()
 {
-  return (bufferCount() || available()) ? d_->buffer[d_->offset++] : -1;
+  return (bufferCount() || available()) ? _buffer[_offset++] : -1;
 }
 
 int TCPClient::read(uint8_t *buffer, size_t size)
@@ -162,21 +163,21 @@ int TCPClient::read(uint8_t *buffer, size_t size)
         if (bufferCount() || available())
         {
           read = (size > (size_t) bufferCount()) ? bufferCount() : size;
-          memcpy(buffer, &d_->buffer[d_->offset], read);
-          d_->offset += read;
+          memcpy(buffer, &_buffer[_offset], read);
+          _offset += read;
         }
         return read;
 }
 
 int TCPClient::peek()
 {
-  return  (bufferCount() || available()) ? d_->buffer[d_->offset] : -1;
+  return  (bufferCount() || available()) ? _buffer[_offset] : -1;
 }
 
 void TCPClient::flush_buffer()
 {
-  d_->offset = 0;
-  d_->total = 0;
+  _offset = 0;
+  _total = 0;
 }
 
 void TCPClient::flush()
@@ -186,12 +187,12 @@ void TCPClient::flush()
 
 void TCPClient::stop()
 {
-  DEBUG("sock %d closesocket", d_->sock);
+  DEBUG("_sock %d closesocket", _sock);
 
-  if (isOpen(d_->sock))
-      socket_close(d_->sock);
-  d_->sock = socket_handle_invalid();
-  d_->remoteIP.clear();
+  if (isOpen(_sock))
+      socket_close(_sock);
+  _sock = socket_handle_invalid();
+  _remoteIP.clear();
   flush_buffer();
 }
 
@@ -200,7 +201,7 @@ uint8_t TCPClient::connected()
   // Wlan up, open and not in CLOSE_WAIT or data still in the local buffer
   bool rv = (status() || bufferCount());
   // no data in the local buffer, Socket open but my be in CLOSE_WAIT yet the CC3000 may have data in its buffer
-  if(!rv && isOpen(d_->sock) && (SOCKET_STATUS_INACTIVE == socket_active_status(d_->sock)))
+  if(!rv && isOpen(_sock) && (SOCKET_STATUS_INACTIVE == socket_active_status(_sock)))
     {
       rv = available(); // Try CC3000
       if (!rv) {        // No more Data and CLOSE_WAIT
@@ -213,7 +214,7 @@ uint8_t TCPClient::connected()
 
 uint8_t TCPClient::status()
 {
-  return (isOpen(d_->sock) && Network.from(nif).ready() && (SOCKET_STATUS_ACTIVE == socket_active_status(d_->sock)));
+  return (isOpen(_sock) && Network.from(nif).ready() && (SOCKET_STATUS_ACTIVE == socket_active_status(_sock)));
 }
 
 TCPClient::operator bool()
@@ -223,5 +224,5 @@ TCPClient::operator bool()
 
 IPAddress TCPClient::remoteIP()
 {
-    return d_->remoteIP;
+    return _remoteIP;
 }

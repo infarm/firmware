@@ -29,9 +29,8 @@
 
 int Internet_Test(void);
 
-void spark_cloud_udp_port_set(uint16_t port);
 int spark_cloud_socket_connect(void);
-int spark_cloud_socket_disconnect(bool graceful=true);
+int spark_cloud_socket_disconnect(void);
 
 void Spark_Protocol_Init(void);
 int Spark_Handshake(bool presence_announce);
@@ -42,7 +41,6 @@ void Spark_SetTime(unsigned long dateTime);
 void Spark_Process_Events();
 void Spark_Sleep();
 void Spark_Wake();
-void Spark_Abort();
 
 void system_set_time(time_t time, unsigned param, void* reserved);
 

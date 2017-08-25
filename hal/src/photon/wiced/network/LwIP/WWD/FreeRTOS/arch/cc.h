@@ -1,11 +1,36 @@
 /*
- * Broadcom Proprietary and Confidential. Copyright 2016 Broadcom
- * All Rights Reserved.
+ * Copyright (c) 2015 Broadcom
+ * All rights reserved.
  *
- * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom Corporation;
- * the contents of this file may not be disclosed to third parties, copied
- * or duplicated in any form, in whole or in part, without the prior
- * written permission of Broadcom Corporation.
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * 3. Neither the name of Broadcom nor the names of other contributors to this
+ * software may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
+ *
+ * 4. This software may not be used as a standalone product, and may only be used as
+ * incorporated in your product or device that incorporates Broadcom wireless connectivity
+ * products and solely for the purpose of enabling the functionalities of such Broadcom products.
+ *
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT, ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
@@ -43,9 +68,6 @@
 
 #include "cpu.h"
 #include <stdio.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <inttypes.h>
 
 #ifdef WICED_LWIP_DEBUG
 #include "platform_assert.h"
@@ -55,23 +77,21 @@
 extern "C" {
 #endif
 
-typedef uint8_t          u8_t;
-typedef int8_t           s8_t;
-typedef uint16_t         u16_t;
-typedef int16_t          s16_t;
-typedef uint32_t         u32_t;
-typedef int32_t          s32_t;
-typedef ptrdiff_t        mem_ptr_t;
+typedef unsigned  char   u8_t;
+typedef signed    char   s8_t;
+typedef unsigned  short  u16_t;
+typedef signed    short  s16_t;
+typedef unsigned  long   u32_t;
+typedef signed    long   s32_t;
+typedef u32_t            mem_ptr_t;
 typedef int              sys_prot_t;
 
-#define U16_F PRIu16
-#define S16_F PRId16
-#define X16_F PRIx16
-#define U32_F PRIu32
-#define S32_F PRId32
-#define X32_F PRIx32
-
-#define SZT_F "lu"
+#define U16_F "hu"
+#define S16_F "hd"
+#define X16_F "hx"
+#define U32_F "lu"
+#define S32_F "ld"
+#define X32_F "lx"
 
 #ifdef __GNUC__
 #define PACK_STRUCT_BEGIN

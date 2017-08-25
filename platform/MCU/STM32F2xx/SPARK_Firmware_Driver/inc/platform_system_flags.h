@@ -13,10 +13,9 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "static_assert.h"
 
-typedef struct __attribute__((packed)) platform_system_flags {
-    uint32_t header;
+typedef struct platform_system_flags {
+    uint16_t header[2];
     uint16_t Bootloader_Version_SysFlag;
     uint16_t NVMEM_SPARK_Reset_SysFlag;
     uint16_t FLASH_OTA_Update_SysFlag;
@@ -39,7 +38,6 @@ typedef struct __attribute__((packed)) platform_system_flags {
     uint16_t reserved[4];
 } platform_system_flags_t;
 
-STATIC_ASSERT(platform_system_flags_size_changed, sizeof(platform_system_flags_t) == 32);
 
 #ifdef	__cplusplus
 }

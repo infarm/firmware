@@ -255,10 +255,7 @@ int Protocol::begin()
 	chunkedTransfer.reset();
 	pinger.reset();
 	timesync_.reset();
-
-	// FIXME: Pending completion handlers should be cancelled at the end of a previous session
-	ack_handlers.clear();
-	last_ack_handlers_update = callbacks.millis();
+	ack_handlers.clear(); // FIXME: Cancel pending handlers right after previous session has ended
 
 	uint32_t channel_flags = 0;
 	ProtocolError error = channel.establish(channel_flags, application_state_checksum());
@@ -370,11 +367,7 @@ ProtocolError Protocol::event_loop(CoAPMessageType::Enum message_type,
  */
 ProtocolError Protocol::event_loop(CoAPMessageType::Enum& message_type)
 {
-	// Process expired completion handlers
-	const system_tick_t t = callbacks.millis();
-	ack_handlers.update(t - last_ack_handlers_update);
-	last_ack_handlers_update = t;
-
+	ack_handlers.processTimeouts(); // Process expired handlers
 	Message message;
 	message_type = CoAPMessageType::NONE;
 	ProtocolError error = channel.receive(message);

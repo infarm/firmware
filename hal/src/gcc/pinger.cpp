@@ -21,7 +21,7 @@
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wunused-local-typedef"
 #endif
-#include "boost_asio_wrap.h"
+#include <boost/asio.hpp>
 #pragma GCC diagnostic pop
 
 #include <boost/date_time/posix_time/posix_time.hpp>

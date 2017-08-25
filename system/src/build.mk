@@ -7,7 +7,7 @@
 TARGET_SRC_PATH = src
 
 # C source files included in this build.
-CSRC += $(call target_files,src/,*.c)
+CSRC +=
 
 # enumerate target cpp files
 CPPSRC += $(call target_files,src/,*.cpp)
@@ -16,13 +16,5 @@ CPPSRC += $(call target_files,src/,*.cpp)
 ASRC +=
 
 CPPFLAGS += -std=gnu++1z
-
-ifeq ($(PLATFORM_ID),6)
-CFLAGS += -DLOG_COMPILE_TIME_LEVEL=LOG_LEVEL_NONE
-endif
-
-ifeq ($(PLATFORM_ID),8)
-CFLAGS += -DLOG_COMPILE_TIME_LEVEL=LOG_LEVEL_NONE
-endif
 
 LOG_MODULE_CATEGORY = system

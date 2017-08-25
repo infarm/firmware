@@ -9,7 +9,7 @@
 // cc1plus: error: unrecognized command line option "-Wno-return-type-c-linkage" [-Werror]
 #pragma GCC diagnostic ignored "-Wunused-local-typedef"
 #endif
-#include "boost_asio_wrap.h"
+#include <boost/asio.hpp>
 #pragma GCC diagnostic pop
 
 extern boost::asio::io_service device_io_service;

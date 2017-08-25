@@ -20,116 +20,45 @@
 
 #include "system_error.h"
 
-#include <utility>
-#include <cstring>
-#include <cstdlib>
+namespace spark {
 
-namespace particle {
-
+// TODO: Add support for custom error messages
 class Error {
 public:
-    // Error type
     enum Type {
         // NONE = 0,
-        // UNKNOWN = -100,
+        // UNKNOWN = 100,
         // ...
         SYSTEM_ERROR_ENUM_VALUES()
     };
 
-    Error(Type type = UNKNOWN);
-    Error(Type type, const char* msg);
-    explicit Error(const char* msg);
-    Error(const Error& error);
-    Error(Error&& error);
-    ~Error();
+    Error();
+    Error(Type type);
 
     Type type() const;
     const char* message() const;
 
-    bool operator==(const Error& error) const;
-    bool operator!=(const Error& error) const;
-    bool operator==(Type type) const;
-    bool operator!=(Type type) const;
-
-    Error& operator=(Error error);
-
-    explicit operator bool() const;
-
 private:
-    const char* msg_;
     Type type_;
-
-    friend void swap(Error& error1, Error& error2);
 };
 
-void swap(Error& error1, Error& error2);
+} // namespace spark
 
-} // namespace particle
+// spark::Error
+inline spark::Error::Error() :
+        type_(NONE) {
+}
 
-inline particle::Error::Error(Type type) :
-        msg_(nullptr),
+inline spark::Error::Error(Type type) :
         type_(type) {
 }
 
-inline particle::Error::Error(Type type, const char* msg) :
-        msg_(msg ? (const char*)strdup(msg) : nullptr),
-        type_(type) {
-}
-
-inline particle::Error::Error(const char* msg) :
-        Error(UNKNOWN, msg) {
-}
-
-inline particle::Error::Error(const Error& error) :
-        Error(error.type_, error.msg_) {
-}
-
-inline particle::Error::Error(Error&& error) :
-        Error() {
-    swap(*this, error);
-}
-
-inline particle::Error::~Error() {
-    free((void*)msg_);
-}
-
-inline particle::Error::Type particle::Error::type() const {
+inline spark::Error::Type spark::Error::type() const {
     return type_;
 }
 
-inline const char* particle::Error::message() const {
-    return (msg_ ? msg_ : system_error_message((system_error_t)type_, nullptr));
-}
-
-inline bool particle::Error::operator==(const Error& error) const {
-    return (type_ == error.type_);
-}
-
-inline bool particle::Error::operator!=(const Error& error) const {
-    return !operator==(error);
-}
-
-inline bool particle::Error::operator==(Type type) const {
-    return (type_ == type);
-}
-
-inline bool particle::Error::operator!=(Type type) const {
-    return !operator==(type);
-}
-
-inline particle::Error& particle::Error::operator=(Error error) {
-    swap(*this, error);
-    return *this;
-}
-
-inline particle::Error::operator bool() const {
-    return type_ != NONE;
-}
-
-inline void particle::swap(Error& error1, Error& error2) {
-    using std::swap;
-    swap(error1.type_, error2.type_);
-    swap(error1.msg_, error2.msg_);
+inline const char* spark::Error::message() const {
+    return system_error_message((system_error)type_, nullptr);
 }
 
 #endif // SPARK_WIRING_ERROR_H

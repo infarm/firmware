@@ -47,10 +47,9 @@ enum FrequencyScale
     SPI_CLK_PHOTON = 60*MHZ
 };
 
-namespace particle {
-class __SPISettings : public Printable {
+class SPISettings : public Printable {
 public:
-  __SPISettings(uint32_t clock, uint8_t bitOrder, uint8_t dataMode)
+  SPISettings(uint32_t clock, uint8_t bitOrder, uint8_t dataMode)
     : default_{false},
       clock_{clock},
       bitOrder_{bitOrder},
@@ -58,11 +57,11 @@ public:
   {
   }
 
-  __SPISettings()
+  SPISettings()
   {
   }
 
-  bool operator==(const __SPISettings& other) const
+  bool operator==(const SPISettings& other) const
   {
     if (default_ && other.default_)
       return true;
@@ -78,7 +77,7 @@ public:
     return false;
   }
 
-  bool operator>=(const __SPISettings& other) const
+  bool operator>=(const SPISettings& other) const
   {
     if (default_ && other.default_)
       return true;
@@ -94,7 +93,7 @@ public:
     return false;
   }
 
-  bool operator<=(const __SPISettings& other) const
+  bool operator<=(const SPISettings& other) const
   {
     if (default_ && other.default_)
       return true;
@@ -110,7 +109,7 @@ public:
     return false;
   }
 
-  bool operator!=(const __SPISettings& other) const
+  bool operator!=(const SPISettings& other) const
   {
     return !(other == *this);
   }
@@ -128,13 +127,12 @@ public:
   }
 
 private:
-  friend class ::SPIClass;
+  friend class SPIClass;
   bool default_ = true;
   uint32_t clock_ = 0;
   uint8_t bitOrder_ = 0;
   uint8_t dataMode_ = 0;
 };
-}
 
 class SPIClass {
 private:
@@ -162,10 +160,8 @@ public:
   void setBitOrder(uint8_t);
   void setDataMode(uint8_t);
 
-  static void usingInterrupt(uint8_t) {};
-
   int32_t beginTransaction();
-  int32_t beginTransaction(const particle::__SPISettings& settings);
+  int32_t beginTransaction(const SPISettings& settings);
   void endTransaction();
 
   /**

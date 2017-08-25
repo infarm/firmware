@@ -30,7 +30,9 @@ int tinkerDigitalWrite(String command);
 int tinkerAnalogRead(String pin);
 int tinkerAnalogWrite(String command);
 
+#if Wiring_WiFi
 STARTUP(System.enable(SYSTEM_FLAG_WIFITESTER_OVER_SERIAL1));
+#endif
 
 SYSTEM_MODE(AUTOMATIC);
 

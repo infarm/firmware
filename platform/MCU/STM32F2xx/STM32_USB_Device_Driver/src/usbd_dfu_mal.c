@@ -43,8 +43,6 @@
  #include "usbd_mem_if_template.h"
 #endif
 
-#include <string.h>
-
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -258,19 +256,31 @@ uint16_t MAL_Write (uint32_t Idx, uint32_t Add, uint32_t Len)
   * @param  Len: Number of data to be written (in bytes)
   * @retval Buffer pointer
   */
-const uint8_t* MAL_Read(uint32_t Idx, uint32_t Add, uint32_t Len)
+const uint8_t *MAL_Read (uint32_t Idx, uint32_t Add, uint32_t Len)
 {
-  if (Idx < MAX_USED_MEDIA && tMALTab[Idx]->pMAL_Read != NULL && MAL_CheckAdd(Idx, Add) == MAL_OK)
+  uint32_t memIdx = Idx;
+  
+  if(MAL_OK != MAL_CheckAdd(Idx, Add))
   {
-    const uint8_t* data = tMALTab[Idx]->pMAL_Read(Add, Len);
-    if (data != NULL)
+    return MAL_Buffer;
+  }
+
+  if (memIdx < MAX_USED_MEDIA)
+  {
+    /* Check if the command is supported */
+    if (tMALTab[memIdx]->pMAL_Read != NULL)
     {
-      return data;
+      return tMALTab[memIdx]->pMAL_Read(Add, Len);
+    }
+    else
+    {
+      return MAL_Buffer;
     }
   }
-  // Fill DFU packet with zeros to make reading errors more apparent
-  memset(MAL_Buffer, 0x00, XFERSIZE);
-  return MAL_Buffer;
+  else
+  {
+    return MAL_Buffer;
+  }
 }
 
 /**
@@ -315,13 +325,13 @@ uint16_t MAL_GetStatus(uint32_t Idx, uint32_t Add , uint8_t Cmd, uint8_t *buffer
   * @param  Add: Sector address/code (allow to determine which memory will be addressed)
   * @retval Index of the addressed memory.
   */
-static uint8_t MAL_CheckAdd(uint32_t Idx, uint32_t Add)
+static uint8_t  MAL_CheckAdd(uint32_t Idx, uint32_t Add)
 {
   uint32_t memIdx = Idx;
 
-  if (tMALTab[memIdx]->pMAL_CheckAdd != NULL)
-  {
-    return tMALTab[memIdx]->pMAL_CheckAdd(Add);
+    if (tMALTab[memIdx]->pMAL_CheckAdd(Add) == MAL_OK)
+    {
+     return MAL_OK;
   }
   
   return MAL_FAIL;

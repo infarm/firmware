@@ -26,7 +26,6 @@
 
 #include "spark_wiring_ipaddress.h"
 #include "spark_wiring_print.h"
-#include "spark_wiring_platform.h"
 #include "string.h"
 
 IPAddress::IPAddress()
@@ -55,7 +54,7 @@ IPAddress::IPAddress(const uint8_t* address)
     *this = address;
 }
 
-IPAddress::operator bool() const
+IPAddress::operator bool()
 {
 #if Wiring_IPv6
 #error handle me!
@@ -83,17 +82,17 @@ IPAddress& IPAddress::operator=(uint32_t ipv4)
     return *this;
 }
 
-bool IPAddress::operator==(uint32_t ipv4) const
+bool IPAddress::operator==(uint32_t ipv4)
 {
     return ipv4==address.ipv4;
 }
 
-bool IPAddress::operator==(const uint8_t* address) const
+bool IPAddress::operator==(const uint8_t* address)
 {
     return IPAddress(address)==*this;
 }
 
-bool IPAddress::operator==(const IPAddress& that) const
+bool IPAddress::operator==(const IPAddress& that)
 {
 #if 	HAL_IPv6
 	if (address.v!=that.address.v)

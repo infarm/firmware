@@ -74,7 +74,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f2xx_flash.h"
-#include "flash_acquire.h"
 
 /** @addtogroup STM32F2xx_StdPeriph_Driver
   * @{
@@ -304,7 +303,6 @@ void FLASH_DataCacheReset(void)
   */
 void FLASH_Unlock(void)
 {
-	__flash_acquire();
   if((FLASH->CR & FLASH_CR_LOCK) != RESET)
   {
     /* Authorize the FLASH Registers access */
@@ -322,7 +320,6 @@ void FLASH_Lock(void)
 {
   /* Set the LOCK Bit to lock the FLASH Registers access */
   FLASH->CR |= FLASH_CR_LOCK;
-  __flash_release();
 }
 
 /**

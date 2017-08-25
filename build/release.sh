@@ -1,4 +1,9 @@
-VERSION="0.7.0-rc.3"
+# if [ $1 -eq 6 ] || [ $1 -eq 8 ]; then
+	VERSION="0.6.1"
+# else if [ $1 -eq 10 ]; then
+# 	VERSION="0.6.1"
+# 	fi
+# fi
 
 function release_file()
 {

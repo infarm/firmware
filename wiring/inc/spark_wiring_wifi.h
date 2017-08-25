@@ -34,12 +34,18 @@
 #include "wlan_hal.h"
 #include "system_network.h"
 #include "inet_hal.h"
-#include "spark_wiring_wifi_credentials.h"
 #include <string.h>
 
 class IPAddress;
 
 namespace spark {
+
+enum SecurityType {
+    UNSEC = WLAN_SEC_UNSEC,
+    WEP = WLAN_SEC_WEP,
+    WPA = WLAN_SEC_WPA,
+    WPA2 = WLAN_SEC_WPA2
+};
 
 class WiFiClass : public NetworkClass
 {
@@ -147,19 +153,19 @@ public:
         return network_listening(*this, 0, NULL);
     }
 
-    bool setCredentials(const char *ssid) {
-        return setCredentials(ssid, NULL, UNSEC);
+    void setCredentials(const char *ssid) {
+        setCredentials(ssid, NULL, UNSEC);
     }
 
-    bool setCredentials(const char *ssid, const char *password) {
-        return setCredentials(ssid, password, WPA2);
+    void setCredentials(const char *ssid, const char *password) {
+        setCredentials(ssid, password, WPA2);
     }
 
-    bool setCredentials(const char *ssid, const char *password, unsigned long security, unsigned long cipher=WLAN_CIPHER_NOT_SET) {
-        return setCredentials(ssid, ssid ? strlen(ssid) : 0, password, password ? strlen(password) : 0, security, cipher);
+    void setCredentials(const char *ssid, const char *password, unsigned long security, unsigned long cipher=WLAN_CIPHER_NOT_SET) {
+        setCredentials(ssid, strlen(ssid), password, strlen(password), security, cipher);
     }
 
-    bool setCredentials(const char *ssid, unsigned int ssidLen, const char *password,
+    void setCredentials(const char *ssid, unsigned int ssidLen, const char *password,
             unsigned int passwordLen, unsigned long security=WLAN_SEC_UNSEC, unsigned long cipher=WLAN_CIPHER_NOT_SET) {
 
         WLanCredentials creds;
@@ -171,18 +177,6 @@ public:
         creds.password_len = passwordLen;
         creds.security = WLanSecurityType(security);
         creds.cipher = WLanSecurityCipher(cipher);
-        return (network_set_credentials(*this, 0, &creds, NULL) == 0);
-    }
-
-    void setCredentials(const char* ssid, WiFiCredentials credentials) {
-        WLanCredentials creds = credentials.getHalCredentials();
-        creds.ssid = ssid;
-        creds.ssid_len = ssid ? strlen(ssid) : 0;
-        network_set_credentials(*this, 0, &creds, NULL);
-    }
-
-    void setCredentials(WiFiCredentials credentials) {
-        WLanCredentials creds = credentials.getHalCredentials();
         network_set_credentials(*this, 0, &creds, NULL);
     }
 
@@ -233,24 +227,6 @@ public:
     }
 
     int getCredentials(WiFiAccessPoint* results, size_t result_count);
-
-    String hostname()
-    {
-        const size_t maxHostname = 64;
-        char buf[maxHostname] = {0};
-        network_get_hostname(*this, 0, buf, maxHostname, nullptr);
-        return String(buf);
-    }
-
-    int setHostname(const String& hostname)
-    {
-        return setHostname(hostname.c_str());
-    }
-
-    int setHostname(const char* hostname)
-    {
-        return network_set_hostname(*this, 0, hostname, nullptr);
-    }
 };
 
 extern WiFiClass WiFi;

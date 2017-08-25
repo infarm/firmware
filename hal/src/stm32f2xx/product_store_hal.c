@@ -8,10 +8,10 @@ inline uint16_t dct_offset(ProductStoreIndex idx) {
     return DCT_PRODUCT_STORE_OFFSET+(sizeof(uint16_t)*idx);
 }
 
-inline int dct_product_store_offset(ProductStoreIndex idx, uint16_t* ptr) __attribute__((always_inline));
-inline int dct_product_store_offset(ProductStoreIndex idx, uint16_t* ptr)
+inline uint16_t* dct_product_store_offset(ProductStoreIndex idx) __attribute__((always_inline));
+inline uint16_t* dct_product_store_offset(ProductStoreIndex idx)
 {
-    return dct_read_app_data_copy(dct_offset(idx), ptr, sizeof(uint16_t));
+    return (uint16_t*)dct_read_app_data(dct_offset(idx));
 }
 
 /**
@@ -20,8 +20,8 @@ inline int dct_product_store_offset(ProductStoreIndex idx, uint16_t* ptr)
  */
 uint16_t HAL_SetProductStore(ProductStoreIndex index, uint16_t value)
 {
-    uint16_t oldValue = 0;
-    dct_product_store_offset(index, &oldValue);
+    uint16_t* store = dct_product_store_offset(index);
+    uint16_t oldValue = *store;
     if (oldValue!=value) {
         dct_write_app_data(&value, dct_offset(index), sizeof(value));
     }
@@ -35,8 +35,7 @@ uint16_t HAL_SetProductStore(ProductStoreIndex index, uint16_t value)
  */
 uint16_t HAL_GetProductStore(ProductStoreIndex index)
 {
-    uint16_t value = 0;
-    dct_product_store_offset(index, &value);
-    return value;
+    uint16_t* value = dct_product_store_offset(index);
+    return *value;
 }
 

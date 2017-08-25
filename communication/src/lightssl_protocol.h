@@ -20,8 +20,7 @@
 #pragma once
 
 #include "protocol_selector.h"
-
-#if HAL_PLATFORM_CLOUD_TCP && PARTICLE_PROTOCOL
+#if HAL_PLATFORM_CLOUD_TCP
 
 #include <string.h>
 #include "protocol_defs.h"
@@ -77,9 +76,7 @@ public:
 		return len;
 	}
 
-	virtual int command(ProtocolCommands::Enum command, uint32_t data) override;
-
-	int wait_confirmable(uint32_t timeout=5000);
+	virtual void command(ProtocolCommands::Enum command, uint32_t data) override;
 
 };
 
@@ -87,4 +84,4 @@ public:
 
 }}
 
-#endif // HAL_PLATFORM_CLOUD_TCP && PARTICLE_PROTOCOL
+#endif

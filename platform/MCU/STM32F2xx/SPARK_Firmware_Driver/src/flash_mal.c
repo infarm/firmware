@@ -102,7 +102,7 @@ uint32_t EndOfFlashSector(flash_device_t device, uint32_t address)
 		uint16_t sector = addressToSectorIndex(address);
 		end = sectorIndexToStartAddress(sector+1);
 	}
-#ifdef USE_SERIAL_FLASH
+#if USE_SERIAL_FLASH
 	else if (device==FLASH_SERIAL)
 	{
 		uint16_t sector = address / sFLASH_PAGESIZE;
@@ -253,18 +253,18 @@ bool FLASH_EraseMemory(flash_device_t flashDeviceID, uint32_t startAddress, uint
     return false;
 }
 
-int FLASH_CheckCopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
+bool FLASH_CheckCopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
                       flash_device_t destinationDeviceID, uint32_t destinationAddress,
                       uint32_t length, uint8_t module_function, uint8_t flags)
 {
     if (!FLASH_CheckValidAddressRange(sourceDeviceID, sourceAddress, length))
     {
-        return FLASH_ACCESS_RESULT_BADARG;
+        return false;
     }
 
     if (!FLASH_CheckValidAddressRange(destinationDeviceID, destinationAddress, length))
     {
-        return FLASH_ACCESS_RESULT_BADARG;
+        return false;
     }
 
 #ifndef USE_SERIAL_FLASH    // this predates the module system (early P1's using external flash for storage)
@@ -274,33 +274,33 @@ int FLASH_CheckCopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
 
         if((flags & (MODULE_VERIFY_LENGTH|MODULE_VERIFY_CRC)) && (length < moduleLength+4))
         {
-            return FLASH_ACCESS_RESULT_BADARG;
+            return false;
         }
 
         const module_info_t* info = FLASH_ModuleInfo(sourceDeviceID, sourceAddress);
         if ((info->module_function != MODULE_FUNCTION_RESOURCE) && (info->platform_id != PLATFORM_ID))
         {
-            return FLASH_ACCESS_RESULT_BADARG;
+            return false;
         }
 
         // verify destination address
         if ((flags & MODULE_VERIFY_DESTINATION_IS_START_ADDRESS) && (((uint32_t)info->module_start_address) != destinationAddress))
         {
-            return FLASH_ACCESS_RESULT_BADARG;
+            return false;
         }
 
         if ((flags & MODULE_VERIFY_FUNCTION) && (info->module_function != module_function))
         {
-            return FLASH_ACCESS_RESULT_BADARG;
+            return false;
         }
 
         if ((flags & MODULE_VERIFY_CRC) && !FLASH_VerifyCRC32(sourceDeviceID, sourceAddress, moduleLength))
         {
-            return FLASH_ACCESS_RESULT_BADARG;
+            return false;
         }
     }
 #endif
-    return FLASH_ACCESS_RESULT_OK;
+    return true;
 }
 
 bool CopyFlashBlock(flash_device_t sourceDeviceID, uint32_t sourceAddress, flash_device_t destinationDeviceID, uint32_t destinationAddress, uint32_t length)
@@ -390,13 +390,13 @@ bool CopyFlashBlock(flash_device_t sourceDeviceID, uint32_t sourceAddress, flash
 	return success;
 }
 
-int FLASH_CopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
-                     flash_device_t destinationDeviceID, uint32_t destinationAddress,
-                     uint32_t length, uint8_t module_function, uint8_t flags)
+bool FLASH_CopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
+                      flash_device_t destinationDeviceID, uint32_t destinationAddress,
+                      uint32_t length, uint8_t module_function, uint8_t flags)
 {
-    if (FLASH_CheckCopyMemory(sourceDeviceID, sourceAddress, destinationDeviceID, destinationAddress, length, module_function, flags) != FLASH_ACCESS_RESULT_OK)
+    if (!FLASH_CheckCopyMemory(sourceDeviceID, sourceAddress, destinationDeviceID, destinationAddress, length, module_function, flags))
     {
-        return FLASH_ACCESS_RESULT_BADARG;
+        return false;
     }
 
     if (sourceDeviceID == FLASH_SERIAL)
@@ -414,12 +414,12 @@ int FLASH_CopyMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
     		if (blockLength>length)
     			blockLength = length;
     		if (!CopyFlashBlock(sourceDeviceID, sourceAddress, destinationDeviceID, destinationAddress, blockLength))
-    			return FLASH_ACCESS_RESULT_ERROR;
+    			return false;
     		length -= blockLength;
     		sourceAddress += blockLength;
     		destinationAddress += blockLength;
     }
-    return FLASH_ACCESS_RESULT_OK;
+    return true;
 }
 
 bool FLASH_CompareMemory(flash_device_t sourceDeviceID, uint32_t sourceAddress,
@@ -497,11 +497,12 @@ bool FLASH_AddToNextAvailableModulesSlot(flash_device_t sourceDeviceID, uint32_t
                                          flash_device_t destinationDeviceID, uint32_t destinationAddress,
                                          uint32_t length, uint8_t function, uint8_t flags)
 {
+    //Read the flash modules info from the dct area
+    const platform_flash_modules_t* dct_app_data = (const platform_flash_modules_t*)dct_read_app_data(DCT_FLASH_MODULES_OFFSET);
     platform_flash_modules_t flash_modules[MAX_MODULES_SLOT];
     uint8_t flash_module_index = MAX_MODULES_SLOT;
 
-    //Read the flash modules info from the dct area
-    dct_read_app_data_copy(DCT_FLASH_MODULES_OFFSET, flash_modules, sizeof(flash_modules));
+    memcpy(flash_modules, dct_app_data, sizeof(flash_modules));
 
     //fill up the next available modules slot and return true else false
     //slot 0 is reserved for factory reset module so start from flash_module_index = 1
@@ -537,26 +538,27 @@ bool FLASH_AddToFactoryResetModuleSlot(flash_device_t sourceDeviceID, uint32_t s
                                        flash_device_t destinationDeviceID, uint32_t destinationAddress,
                                        uint32_t length, uint8_t function, uint8_t flags)
 {
-    platform_flash_modules_t flash_module;
-    platform_flash_modules_t flash_module_current;
-
     //Read the flash modules info from the dct area
-    dct_read_app_data_copy(DCT_FLASH_MODULES_OFFSET + (FAC_RESET_SLOT * sizeof(platform_flash_modules_t)), &flash_module_current, sizeof(flash_module_current));
-    flash_module = flash_module_current;
+    const platform_flash_modules_t* dct_app_data = (const platform_flash_modules_t*)dct_read_app_data(DCT_FLASH_MODULES_OFFSET);
+    platform_flash_modules_t flash_modules[1];//slot 0 is factory reset module
 
-    flash_module.sourceDeviceID = sourceDeviceID;
-    flash_module.sourceAddress = sourceAddress;
-    flash_module.destinationDeviceID = destinationDeviceID;
-    flash_module.destinationAddress = destinationAddress;
-    flash_module.length = length;
-    flash_module.magicNumber = 0x0FAC;
-    flash_module.module_function = function;
-    flash_module.flags = flags;
+    memcpy(flash_modules, dct_app_data, sizeof(flash_modules));
 
-    if(memcmp(&flash_module, &flash_module_current, sizeof(flash_module)) != 0)
+    flash_modules[FAC_RESET_SLOT].sourceDeviceID = sourceDeviceID;
+    flash_modules[FAC_RESET_SLOT].sourceAddress = sourceAddress;
+    flash_modules[FAC_RESET_SLOT].destinationDeviceID = destinationDeviceID;
+    flash_modules[FAC_RESET_SLOT].destinationAddress = destinationAddress;
+    flash_modules[FAC_RESET_SLOT].length = length;
+    flash_modules[FAC_RESET_SLOT].magicNumber = 0x0FAC;
+    flash_modules[FAC_RESET_SLOT].module_function = function;
+    flash_modules[FAC_RESET_SLOT].flags = flags;
+
+    if(memcmp(flash_modules, dct_app_data, sizeof(flash_modules)) != 0)
     {
         //Only write dct app data if factory reset module slot is different
-        dct_write_app_data(&flash_module, DCT_FLASH_MODULES_OFFSET + (FAC_RESET_SLOT * sizeof(platform_flash_modules_t)), sizeof(platform_flash_modules_t));
+        dct_write_app_data(&flash_modules[FAC_RESET_SLOT],
+        						DCT_FLASH_MODULES_OFFSET,
+								sizeof(platform_flash_modules_t));
     }
 
     return true;
@@ -564,31 +566,42 @@ bool FLASH_AddToFactoryResetModuleSlot(flash_device_t sourceDeviceID, uint32_t s
 
 bool FLASH_ClearFactoryResetModuleSlot(void)
 {
-    // Mark slot as unused
-    const size_t magic_num_offs = DCT_FLASH_MODULES_OFFSET + sizeof(platform_flash_modules_t) * FAC_RESET_SLOT +
-            offsetof(platform_flash_modules_t, magicNumber);
-    const uint16_t magic_num = 0xffff;
-    return (dct_write_app_data(&magic_num, magic_num_offs, sizeof(magic_num)) == 0);
+    //Read the flash modules info from the dct area
+    const platform_flash_modules_t* flash_modules = (const platform_flash_modules_t*)dct_read_app_data(DCT_FLASH_MODULES_OFFSET);
+
+    //Set slot 0 factory reset module elements to 0 without sector erase
+    FLASH_Unlock();
+
+    uint32_t address = (uint32_t)&flash_modules[FAC_RESET_SLOT];
+    uint32_t length = sizeof(platform_flash_modules_t) >> 2;
+
+    while(length--)
+    {
+        FLASH_ProgramWord(address, 0);
+        address += 4;
+    }
+
+    FLASH_Lock();
+
+    return true;
 }
 
-int FLASH_ApplyFactoryResetImage(copymem_fn_t copy)
+bool FLASH_ApplyFactoryResetImage(copymem_fn_t copy)
 {
-    platform_flash_modules_t flash_module;
-    int restoreFactoryReset = FLASH_ACCESS_RESULT_ERROR;
-
     //Read the flash modules info from the dct area
-    dct_read_app_data_copy(DCT_FLASH_MODULES_OFFSET + (FAC_RESET_SLOT * sizeof(flash_module)), &flash_module, sizeof(flash_module));
+    const platform_flash_modules_t* flash_modules = (const platform_flash_modules_t*)dct_read_app_data(DCT_FLASH_MODULES_OFFSET);
+    bool restoreFactoryReset = false;
 
-    if(flash_module.magicNumber == 0x0FAC)
+    if(flash_modules[FAC_RESET_SLOT].magicNumber == 0x0FAC)
     {
         //Restore Factory Reset Firmware (slot 0 is factory reset module)
-        restoreFactoryReset = copy(flash_module.sourceDeviceID,
-                                   flash_module.sourceAddress,
-                                   flash_module.destinationDeviceID,
-                                   flash_module.destinationAddress,
-                                   flash_module.length,
-                                   flash_module.module_function,
-                                   flash_module.flags);
+        restoreFactoryReset = copy(flash_modules[FAC_RESET_SLOT].sourceDeviceID,
+                                               flash_modules[FAC_RESET_SLOT].sourceAddress,
+                                               flash_modules[FAC_RESET_SLOT].destinationDeviceID,
+                                               flash_modules[FAC_RESET_SLOT].destinationAddress,
+                                               flash_modules[FAC_RESET_SLOT].length,
+                                                flash_modules[FAC_RESET_SLOT].module_function,
+                                               flash_modules[FAC_RESET_SLOT].flags);
     }
     else
     {
@@ -603,58 +616,62 @@ int FLASH_ApplyFactoryResetImage(copymem_fn_t copy)
 
 bool FLASH_IsFactoryResetAvailable(void)
 {
-    return !FLASH_ApplyFactoryResetImage(FLASH_CheckCopyMemory);
+    return FLASH_ApplyFactoryResetImage(FLASH_CheckCopyMemory);
 }
 
 bool FLASH_RestoreFromFactoryResetModuleSlot(void)
 {
-    return !FLASH_ApplyFactoryResetImage(FLASH_CopyMemory);
+    return FLASH_ApplyFactoryResetImage(FLASH_CopyMemory);
 }
 
 //This function called in bootloader to perform the memory update process
-bool FLASH_UpdateModules(void (*flashModulesCallback)(bool isUpdating))
+void FLASH_UpdateModules(void (*flashModulesCallback)(bool isUpdating))
 {
-    // Copy module info from DCT before updating any modules, since bootloader might load DCT
-    // functions dynamically. FAC_RESET_SLOT is reserved for factory reset module
-    const size_t max_module_count = MAX_MODULES_SLOT - GEN_START_SLOT;
-    platform_flash_modules_t modules[max_module_count];
-    size_t module_offs = DCT_FLASH_MODULES_OFFSET + sizeof(platform_flash_modules_t) * GEN_START_SLOT;
-    size_t module_count = 0;
-    for (size_t i = 0; i < max_module_count; ++i) {
-        const size_t magic_num_offs = module_offs + offsetof(platform_flash_modules_t, magicNumber);
-        uint16_t magic_num = 0;
-        if (dct_read_app_data_copy(magic_num_offs, &magic_num, sizeof(magic_num)) != 0) {
-            return false;
-        }
-        if (magic_num == 0xabcd) {
-            // Copy module info
-            if (dct_read_app_data_copy(module_offs, &modules[module_count], sizeof(platform_flash_modules_t)) != 0) {
-                return false;
+    //Read the flash modules info from the dct area
+    const platform_flash_modules_t* flash_modules = (const platform_flash_modules_t*)dct_read_app_data(DCT_FLASH_MODULES_OFFSET);
+    uint8_t flash_module_index = MAX_MODULES_SLOT;
+
+    //slot 0 is reserved for factory reset module so start from flash_module_index = 1
+    for (flash_module_index = GEN_START_SLOT; flash_module_index < MAX_MODULES_SLOT; flash_module_index++)
+    {
+        if(flash_modules[flash_module_index].magicNumber == 0xABCD)
+        {
+            //Turn On RGB_COLOR_MAGENTA toggling during flash updating
+            if(flashModulesCallback)
+            {
+                flashModulesCallback(true);
             }
-            // Mark slot as unused
-            magic_num = 0xffff;
-            if (dct_write_app_data(&magic_num, magic_num_offs, sizeof(magic_num)) != 0) {
-                return false;
+
+            //Copy memory from source to destination based on flash device id
+            FLASH_CopyMemory(flash_modules[flash_module_index].sourceDeviceID,
+                             flash_modules[flash_module_index].sourceAddress,
+                             flash_modules[flash_module_index].destinationDeviceID,
+                             flash_modules[flash_module_index].destinationAddress,
+                             flash_modules[flash_module_index].length,
+                             flash_modules[flash_module_index].module_function,
+                             flash_modules[flash_module_index].flags);
+
+            //Set all flash_modules[flash_module_index] elements to 0 without sector erase
+            FLASH_Unlock();
+
+            uint32_t address = (uint32_t)&flash_modules[flash_module_index];
+            uint32_t length = sizeof(platform_flash_modules_t) >> 2;
+
+            while(length--)
+            {
+                FLASH_ProgramWord(address, 0);
+                address += 4;
             }
-            ++module_count;
-        }
-        module_offs += sizeof(platform_flash_modules_t);
-    }
-    for (size_t i = 0; i < module_count; ++i) {
-        const platform_flash_modules_t* module = &modules[i];
-        // Turn On RGB_COLOR_MAGENTA toggling during flash updating
-        if (flashModulesCallback) {
-            flashModulesCallback(true);
-        }
-        // Copy memory from source to destination based on flash device id
-        FLASH_CopyMemory(module->sourceDeviceID, module->sourceAddress, module->destinationDeviceID,
-                module->destinationAddress, module->length, module->module_function, module->flags);
-        // Turn Off RGB_COLOR_MAGENTA toggling
-        if (flashModulesCallback) {
-            flashModulesCallback(false);
+
+            FLASH_Lock();
+
+            if(flashModulesCallback)
+            {
+                //Turn Off RGB_COLOR_MAGENTA toggling
+                flashModulesCallback(false);
+            }
         }
     }
-    return true;
 }
 
 const module_info_t* FLASH_ModuleInfo(uint8_t flashDeviceID, uint32_t startAddress)

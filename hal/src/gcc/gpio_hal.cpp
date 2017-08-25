@@ -2,7 +2,7 @@
 #include "gpio_hal.h"
 #include <string>
 #include <utility>
-#include "boost_signals2_wrap.h"
+#include <boost/signals2.hpp>
 
 using std::string;
 

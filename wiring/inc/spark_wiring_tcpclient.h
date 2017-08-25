@@ -32,8 +32,6 @@
 #include "spark_wiring_print.h"
 #include "socket_hal.h"
 
-#include <memory>
-
 #define TCPCLIENT_BUF_MAX_SIZE	128
 
 class TCPClient : public Client {
@@ -65,32 +63,17 @@ public:
 	using Print::write;
 
 protected:
-        inline sock_handle_t sock_handle() { return d_->sock; }
+        inline sock_handle_t sock_handle() { return _sock; }
 
 private:
-    struct Data {
-        sock_handle_t sock;
-        uint8_t buffer[TCPCLIENT_BUF_MAX_SIZE];
-        uint16_t offset;
-        uint16_t total;
-        IPAddress remoteIP;
-
-        explicit Data(sock_handle_t sock) :
-                sock(sock),
-                offset(0),
-                total(0) {
-        }
-
-        ~Data() {
-            if (socket_handle_valid(sock)) {
-                socket_close(sock);
-            }
-        }
-    };
-
-    std::shared_ptr<Data> d_;
-
+	static uint16_t _srcport;
+	sock_handle_t _sock;
+	uint8_t _buffer[TCPCLIENT_BUF_MAX_SIZE];
+	uint16_t _offset;
+	uint16_t _total;
+        IPAddress _remoteIP;
 	inline int bufferCount();
+
 };
 
 #endif

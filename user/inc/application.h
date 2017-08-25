@@ -26,10 +26,6 @@
 #ifndef APPLICATION_H_
 #define APPLICATION_H_
 
-#ifndef PARTICLE_WIRING_ARDUINO_COMPATIBILTY
-#define PARTICLE_WIRING_ARDUINO_COMPATIBILTY 0
-#endif
-
 #include "system_version.h"
 
 #ifdef SPARK_PLATFORM
@@ -86,6 +82,13 @@
 using namespace spark;
 using namespace particle;
 
+#ifndef PARTICLE_NO_ARDUINO_COMPATIBILITY
+#define PARTICLE_NO_ARDUINO_COMPATIBILITY 0
+#endif
+#if !PARTICLE_NO_ARDUINO_COMPATIBILITY
+#undef PARTICLE_ARDUINO_COMPATIBILITY
+#define PARTICLE_ARDUINO_COMPATIBILITY 1
+#endif
 #include "spark_wiring_arduino.h"
 
 #endif /* APPLICATION_H_ */

@@ -29,7 +29,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "dct_hal.h"
+#include "dcd_flash.h"
 
 /* Private typedef ----------------------------------------------------------*/
 

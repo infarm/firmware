@@ -59,6 +59,8 @@ INCLUDE_DIRS += $(SOURCE_PATH)/$(USRSRC)  # add user sources to include path
 CPPSRC += $(call target_files,$(USRSRC_SLASH),*.cpp)
 CSRC += $(call target_files,$(USRSRC_SLASH),*.c)
 
+CPPFLAGS += -std=gnu++11
+
 APPSOURCES=$(call target_files,$(USRSRC_SLASH),*.cpp)
 APPSOURCES+=$(call target_files,$(USRSRC_SLASH),*.c)
 ifeq ($(strip $(APPSOURCES)),)
@@ -71,7 +73,6 @@ endif
 INCLUDE_DIRS += $(MODULE_PATH)/libraries
 
 CFLAGS += -DSPARK_PLATFORM_NET=$(PLATFORM_NET)
-CPPFLAGS += -std=gnu++1z
 
 BUILTINS_EXCLUDE = malloc free realloc
 CFLAGS += $(addprefix -fno-builtin-,$(BUILTINS_EXCLUDE))

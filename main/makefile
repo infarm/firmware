@@ -82,3 +82,5 @@ endif
 include ../build/arm-tlm.mk
 
 endif
+
+-include ../build/local.mk

@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <Controllino.h>
+#include <EEPROM.h>
 
 #include "relay_controller.h"
 #include "light_controller.h"
 
 #define PWM_LIGHT_DIMMING CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_11
-#define LED_OPERATION_MODE_MAINTENANCE CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_09
-#define LED_OPERATION_MODE_NORMAL CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_10
+#define LED_OPERATION_MODE_RED CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_09
+#define LED_OPERATION_MODE_GREEN CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_10
 
 void LightController::init(RelayController *rc)
 {
@@ -16,19 +17,19 @@ void LightController::init(RelayController *rc)
 	Controllino_RTC_init();
 	setLightDimInPercents(0);
 	pinMode(PWM_LIGHT_DIMMING, OUTPUT);
-	pinMode(LED_OPERATION_MODE_NORMAL, OUTPUT);
-	pinMode(LED_OPERATION_MODE_MAINTENANCE, OUTPUT);
+	pinMode(LED_OPERATION_MODE_GREEN, OUTPUT);
+	pinMode(LED_OPERATION_MODE_RED, OUTPUT);
 	setLightDimInPercents(0);
-	digitalWrite(LED_OPERATION_MODE_NORMAL, LOW);
-	digitalWrite(LED_OPERATION_MODE_MAINTENANCE, LOW);
+	signalNormalOperationMode();
 	timerIntensitySmoother.init(lightIntensitySmootherIntervalMs);
 	timerScheduleCheck.init(lightScheduleCheckIntervalMs);
 	timerSerialLogFloodProtection.init(serialLogMessageIntervalMs);
+	loadLightSchedulesFromFlash();
 }
 
 void LightController::setLightDimInPercents(uint8_t percents)
 {
-	intensityPercents = percents;
+	m_intensityPercents = percents;
 #ifdef DEVICE_ARDUINO_MEGA
 	pwmValue = map(percents, 0, 100, 0, 255);
 #elif DEVICE_CONTROLLINO
@@ -79,17 +80,25 @@ bool LightController::isMaintenanceModeBeingSignaled()
 void LightController::signalMaintenanceOperationMode()
 {
 	maintenanceMode = true;
-	digitalWrite(LED_OPERATION_MODE_NORMAL, LOW);
-	digitalWrite(LED_OPERATION_MODE_MAINTENANCE, HIGH);
+	digitalWrite(LED_OPERATION_MODE_GREEN, HIGH);
+	digitalWrite(LED_OPERATION_MODE_RED, HIGH);
 	debugMessage(F("Signaling maintenance operation mode"));
 }
 
 void LightController::signalNormalOperationMode()
 {
 	maintenanceMode = false;
-	digitalWrite(LED_OPERATION_MODE_MAINTENANCE, LOW);
-	digitalWrite(LED_OPERATION_MODE_NORMAL, HIGH);
+	digitalWrite(LED_OPERATION_MODE_RED, LOW);
+	digitalWrite(LED_OPERATION_MODE_GREEN, HIGH);
 	debugMessage(F("Signaling normal operation mode"));
+}
+
+void LightController::signalErrorOperationMode()
+{
+	maintenanceMode = false;
+	digitalWrite(LED_OPERATION_MODE_RED, HIGH);
+	digitalWrite(LED_OPERATION_MODE_GREEN, LOW);
+	debugMessage(F("Signaling error operation mode"));
 }
 
 bool LightController::isOpenDoorsModeOngoing()
@@ -109,13 +118,100 @@ void LightController::disableOpenDoorsMode()
 	ensureStaticLightSchedule();
 }
 
+void LightController::setLightIntensitySmootherIntervalMs(uint32_t n)
+{
+	lightIntensitySmootherIntervalMs = n;
+	timerIntensitySmoother.setIntervalMillis(n);
+}
+
+void LightController::setLightScheduleCheckIntervalMs(uint32_t n)
+{
+	lightScheduleCheckIntervalMs = n;
+	timerScheduleCheck.setIntervalMillis(n);
+}
+
+uint8_t LightController::intensityPercents()
+{
+	return m_intensityPercents;
+}
+
+uint8_t LightController::intensityPercentsSmoothedEnd()
+{
+	return m_intensityPercentsSmoothedEnd;
+}
+
+uint8_t LightController::intensityPercentsSmoothedStep()
+{
+	return m_intensityPercentsSmoothedStep;
+}
+
+uint8_t LightController::intensityPercentsSmoothedStart()
+{
+	return m_intensityPercentsSmoothedStart;
+}
+
+int LightController::lightIntensityPercentForHour(uint8_t hour)
+{
+	if (hour > 23)
+		return -1;
+
+	return lightSchedule[hour];
+}
+
+bool LightController::setLightIntensityPercentForHourAndStore(uint8_t hour, uint8_t intensity)
+{
+	return setLightIntensityPercentForHour(hour, intensity, true);
+}
+
+bool LightController::setLightIntensityPercentForHour(uint8_t hour, uint8_t intensity)
+{
+	return setLightIntensityPercentForHour(hour, intensity, false);
+}
+
+bool LightController::setLightIntensityPercentForHour(uint8_t hour, uint8_t intensity, bool storeInFlash)
+{
+	if (hour > 23)
+		return false;
+
+	lightSchedule[hour] = intensity;
+
+	if (!storeInFlash)
+		return true;
+
+	return storeLightSchedulesToFlash();
+}
+
+bool LightController::loadLightSchedulesFromFlash()
+{
+#define EEPROM_NOT_WRITTEN_YET 255
+	for (int hour = 0; hour <= 23; hour++) {
+		int intensity = EEPROM.read(hour);
+		if (intensity != EEPROM_NOT_WRITTEN_YET) {
+			debugMessage("Loaded light schedule from flash hour=%d intensity=%d%%", hour, intensity);
+			setLightIntensityPercentForHour(hour, intensity);
+		}
+	}
+
+	/* TODO: Error checking?! */
+	return true;
+}
+
+bool LightController::storeLightSchedulesToFlash()
+{
+	for (int hour = 0; hour <= 23; hour++) {
+		int intensity = lightIntensityPercentForHour(hour);
+		EEPROM.update(hour, intensity);
+	}
+
+	/* TODO: Error checking?! */
+	return true;
+}
+
 uint8_t LightController::lightsIntensityValueForCurrentSchedule()
 {
+	int intensity;
 	uint8_t hour = 25;
 	uint8_t minute = 61;
-	uint8_t intensity;
-	static const uint8_t schedule[24] = { 80,  0,  0,  0,   0,  0,  0,  80, 80, 80, 80, 80,
-					      80, 80, 90, 100, 90, 80, 80, 80, 80, 80, 80, 80 };
 
 	int ret = Controllino_ReadTimeDate(NULL, NULL, NULL, NULL, &hour, &minute, NULL);
 	if (ret < 0 || hour == 25 || minute == 61) {
@@ -123,7 +219,12 @@ uint8_t LightController::lightsIntensityValueForCurrentSchedule()
 		return 0;
 	}
 
-	intensity = schedule[hour];
+	intensity = lightIntensityPercentForHour(hour);
+	if (intensity < 0) {
+		debugMessage(F("ERROR getting light intensity for %dh"), hour);
+		return 0;
+	}
+
 	debugMessage(F("Light intensity for %dh is %d%%"), hour, intensity);
 	return intensity;
 }
@@ -139,7 +240,7 @@ void LightController::ensureStaticLightSchedule()
 		return;
 	}
 
-	uint8_t intensity = lightsIntensityValueForCurrentSchedule();
+	int intensity = lightsIntensityValueForCurrentSchedule();
 	if (intensity > 0) {
 		debugMessage(F("Lights on"));
 		lightsOn();
@@ -163,8 +264,21 @@ void LightController::ensureStaticLightSchedulePeriodically()
 
 void LightController::setLightDimInPercentsSmoothed(uint8_t percents)
 {
-	intensityPercentsSmoothedEnd = percents;
-	intensityPercentsSmoothedStart = intensityPercents;
+	if (m_intensityPercents == percents) {
+		debugMessage(F("Intensity is already set to %d%%, ignoring setting"), percents);
+		return;
+	}
+
+	if (m_intensityPercentsSmoothedEnd == percents) {
+		if (m_intensityPercentsSmoothedStart != m_intensityPercentsSmoothedEnd) {
+			debugMessage(F("We're already smoothing the intensity to %d%%, ignoring setting"), percents);
+		}
+		return;
+	}
+
+	m_intensityPercentsSmoothedEnd = percents;
+	m_intensityPercentsSmoothedStart = m_intensityPercents;
+	m_intensityPercentsSmoothedStep = 0;
 	handleLightIntensitySmoothing();
 }
 
@@ -173,29 +287,34 @@ void LightController::handleLightIntensitySmoothing()
 	if (!timerIntensitySmoother.timeoutHasPassed())
 		return;
 
-	if (intensityPercents == intensityPercentsSmoothedEnd)
+	if (m_intensityPercents == m_intensityPercentsSmoothedEnd)
 		return;
 
-	intensityPercentsSmoothedStep += 1;
-	uint8_t percents =
-	    map(intensityPercentsSmoothedStep, 0, 100, intensityPercentsSmoothedStart, intensityPercentsSmoothedEnd);
+	m_intensityPercentsSmoothedStep += 1;
+	uint8_t percents = map(m_intensityPercentsSmoothedStep, 0, 100, m_intensityPercentsSmoothedStart,
+			       m_intensityPercentsSmoothedEnd);
 
-	if (intensityPercentsSmoothedStep >= 100) {
-		intensityPercentsSmoothedStep = 0;
-		percents = intensityPercentsSmoothedEnd;
+	if (m_intensityPercentsSmoothedStep >= 100) {
+		m_intensityPercentsSmoothedStep = 0;
+		percents = m_intensityPercentsSmoothedEnd;
 	}
 
-	debugMessage(F("Smoothing intensity %% current: %d target: %d next step: %d"), intensityPercents,
-		     intensityPercentsSmoothedEnd, percents);
+	debugMessage(F("Smoothing intensity %% current: %d target: %d next step: %d"), m_intensityPercents,
+		     m_intensityPercentsSmoothedEnd, percents);
 	setLightDimInPercents(percents);
 	timerIntensitySmoother.restart();
 }
 
-void LightController::tick()
+void LightController::tickTimers()
 {
 	timerScheduleCheck.tick();
 	timerIntensitySmoother.tick();
 	timerSerialLogFloodProtection.tick();
+}
+
+void LightController::tick()
+{
+	tickTimers();
 	handleLightIntensitySmoothing();
 	ensureStaticLightSchedulePeriodically();
 }

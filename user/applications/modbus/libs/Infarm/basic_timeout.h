@@ -10,6 +10,7 @@ class BasicTimeout
 	BasicTimeout(uint32_t intervalMillis, void (*timeoutCallback)(BasicTimeout *t, void *data), void *data);
 	void init(uint32_t intervalMillis);
 	void init(uint32_t intervalMillis, void (*timeoutCallback)(BasicTimeout *t, void *data), void *data);
+	uint32_t setIntervalMillis(uint32_t n);
 	uint32_t remainingMillis();
 	uint32_t restart();
 	void start();

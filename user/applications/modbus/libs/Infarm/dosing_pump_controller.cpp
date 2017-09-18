@@ -2,6 +2,7 @@
 #include "Controllino.h"
 
 #include "dosing_pump_controller.h"
+#include "infarm_utils.h"
 
 #define MAX_PUMPS 6
 #define MIN_PUMP_NUM 0
@@ -17,8 +18,22 @@ enum PumpPins {
 	PumpPinDosing5 = CONTROLLINO_D6,
 };
 
+enum PumpOnLimits {
+	PumpOnLimitWaterValveIntake = MINUTES_TO_MILLIS(3),
+	PumpOnLimitDosing1 = SECONDS_TO_MILLIS(15),
+	PumpOnLimitDosing2 = SECONDS_TO_MILLIS(15),
+	PumpOnLimitDosing3 = SECONDS_TO_MILLIS(30),
+	PumpOnLimitDosing4 = SECONDS_TO_MILLIS(30),
+	PumpOnLimitDosing5 = SECONDS_TO_MILLIS(30),
+};
+
 const static uint8_t pump_pins[MAX_PUMPS] = {
 	PumpPinWaterValveIntake, PumpPinDosing1, PumpPinDosing2, PumpPinDosing3, PumpPinDosing4, PumpPinDosing5,
+};
+
+const static uint32_t pump_on_limits_ms[MAX_PUMPS] = {
+	PumpOnLimitWaterValveIntake, PumpOnLimitDosing1, PumpOnLimitDosing2,
+	PumpOnLimitDosing3,	  PumpOnLimitDosing4, PumpOnLimitDosing5,
 };
 
 const static char *pump_names[MAX_PUMPS] = {
@@ -202,6 +217,21 @@ bool DosingPumpController::pumpOffAfterTimeout(enum DosingPump n, uint32_t timeo
 	return pumpOffAfterTimeout((uint8_t)n, timeout);
 }
 
+bool DosingPumpController::pumpOnTimeoutWithinLimit(enum DosingPump n, uint32_t timeout)
+{
+	return pumpOnTimeoutWithinLimit((uint8_t)n, timeout);
+}
+
+bool DosingPumpController::pumpOnTimeoutWithinLimit(uint8_t n, uint32_t timeout)
+{
+	uint32_t limit = pump_on_limits_ms[n];
+	if (timeout <= limit)
+		return true;
+
+	debugMessage(F("Pump's %s off timeout %lu is over %lu ms limit, ignoring"), pumpName(n), timeout, limit);
+	return false;
+}
+
 bool DosingPumpController::pumpOffAfterTimeout(uint8_t n, uint32_t timeout)
 {
 	if (n > pumpMaxNumber())
@@ -209,6 +239,24 @@ bool DosingPumpController::pumpOffAfterTimeout(uint8_t n, uint32_t timeout)
 
 	pump_off_timeouts[n] = millis() + timeout;
 	debugMessage(F("Will turn %s pump off after %lu ms of activity"), pumpName(n), timeout);
+	return true;
+}
+
+bool DosingPumpController::pumpOnAndOffAfterTimeoutWithLimits(enum DosingPump n, uint32_t timeout)
+{
+	if (pumpIsOn(n)) {
+		debugMessage(F("Not starting %s pump, it's already on, remaining ON time %u ms"), pumpName(n),
+			     pumpOnRemainingTime(n));
+		return false;
+	}
+
+	if (!pumpOnTimeoutWithinLimit(n, timeout))
+		return false;
+
+	debugMessage(F("Starting %s pump with off time %u ms"), pumpName(n), timeout);
+	pumpOn(n);
+	pumpOffAfterTimeout(n, timeout);
+
 	return true;
 }
 

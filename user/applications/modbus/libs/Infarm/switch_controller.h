@@ -35,7 +35,6 @@ class SwitchController : public SerialDebugger
 	void maintenanceModeDisable();
 	void maintenanceModeEnable();
 	static void openDoorsModeDisableTimerCallback(BasicTimeout *t, void *data);
-	static void maintenanceModeDisableTimerCallback(BasicTimeout *t, void *data);
 	static void defaultStateTimerCallback(BasicTimeout *t, void *data);
 
       private:
@@ -48,12 +47,10 @@ class SwitchController : public SerialDebugger
 	bool openDoorsMode = false;
 	bool openDoorsModePreventOnAgain = false;
 	BasicTimeout timerDoorsModeDisable;
-	BasicTimeout timerMaintenanceModeDisable;
 	BasicTimeout timerReturnToDefaultState;
 	BasicTimeout timerSwitchDebouncer;
 	BasicTimeout timerSwitchDebouncerMaintenance;
 	BasicTimeout timerSerialLogFloodProtection;
-	uint32_t maintenanceModeDisableIntervalMs = MINUTES_TO_MILLIS(10);
 	uint32_t openDoorsModeDisableIntervalMs = MINUTES_TO_MILLIS(30);
 	uint32_t defaultStateIntervalMs = 3 * 1000;
 	uint32_t switchDebouncerIntervalMs = 250;

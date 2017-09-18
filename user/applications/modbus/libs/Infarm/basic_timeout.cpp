@@ -28,6 +28,15 @@ BasicTimeout::BasicTimeout(uint32_t intervalMillis, void (*timeoutCallback)(Basi
 	init(intervalMillis, timeoutCallback, data);
 }
 
+uint32_t BasicTimeout::setIntervalMillis(uint32_t n)
+{
+	interval = n;
+	if (isStopped())
+		return 0;
+
+	return restart();
+}
+
 bool BasicTimeout::isStopped()
 {
 	return stopped;

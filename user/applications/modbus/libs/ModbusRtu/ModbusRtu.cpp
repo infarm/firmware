@@ -55,6 +55,10 @@
 #define RS485_SET_RE RS485_PORT_REG |= RS485_PIN_RE
 #endif
 
+#ifdef SPARK_PLATFORM
+#include "Serial2/Serial2.h"
+#endif
+
 enum { RESPONSE_SIZE = 6, EXCEPTION_SIZE = 3, CHECKSUM_SIZE = 2 };
 
 /**
@@ -504,7 +508,7 @@ int8_t Modbus::query(modbus_t telegram)
 
 		au8Buffer[NB_HI] = highByte(telegram.u16CoilsNo);
 		au8Buffer[NB_LO] = lowByte(telegram.u16CoilsNo);
-		au8Buffer[NB_LO + 1] = u8bytesno;
+		au8Buffer[BYTE_CNT] = u8bytesno;
 		u8BufferSize = 7;
 
 		u8regsno = u8bytesno = 0; // now auxiliary registers
@@ -515,7 +519,7 @@ int8_t Modbus::query(modbus_t telegram)
 	case MB_FC_WRITE_MULTIPLE_REGISTERS:
 		au8Buffer[NB_HI] = highByte(telegram.u16CoilsNo);
 		au8Buffer[NB_LO] = lowByte(telegram.u16CoilsNo);
-		au8Buffer[NB_LO + 1] = (uint8_t)(telegram.u16CoilsNo * 2);
+		au8Buffer[BYTE_CNT] = (uint8_t)(telegram.u16CoilsNo * 2);
 		u8BufferSize = 7;
 
 		for (uint16_t i = 0; i < telegram.u16CoilsNo; i++) {
@@ -961,37 +965,33 @@ uint8_t Modbus::validateRequest()
 	}
 
 	// check start address & nb range
-	uint16_t u16regs = 0;
-	uint8_t u8regs;
+	uint16_t len = 0;
+	uint16_t start_address = 0;
 	switch (au8Buffer[FUNC]) {
 	case MB_FC_READ_COILS:
 	case MB_FC_READ_DISCRETE_INPUT:
 	case MB_FC_WRITE_MULTIPLE_COILS:
-		u16regs = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]) / 16;
-		u16regs += word(au8Buffer[NB_HI], au8Buffer[NB_LO]) / 16;
-		u8regs = (uint8_t)u16regs;
-		if (u8regs > u8regsize)
+		start_address = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]) / 16;
+		len = word(au8Buffer[NB_HI], au8Buffer[NB_LO]) / 16;
+		if (start_address + len - 1 > u8regsize)
 			return EXC_ADDR_RANGE;
 		break;
 	case MB_FC_WRITE_COIL:
-		u16regs = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]) / 16;
-		u8regs = (uint8_t)u16regs;
-		if (u8regs > u8regsize)
+		start_address = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]) / 16;
+		if (start_address > u8regsize)
 			return EXC_ADDR_RANGE;
 		break;
 	case MB_FC_WRITE_REGISTER:
-		u16regs = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]);
-		u8regs = (uint8_t)u16regs;
-		if (u8regs > u8regsize)
+		start_address = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]);
+		if (start_address > u8regsize)
 			return EXC_ADDR_RANGE;
 		break;
 	case MB_FC_READ_REGISTERS:
 	case MB_FC_READ_INPUT_REGISTER:
 	case MB_FC_WRITE_MULTIPLE_REGISTERS:
-		u16regs = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]);
-		u16regs += word(au8Buffer[NB_HI], au8Buffer[NB_LO]);
-		u8regs = (uint8_t)u16regs;
-		if (u8regs > u8regsize)
+		len = word(au8Buffer[NB_HI], au8Buffer[NB_LO]);
+		start_address = word(au8Buffer[ADD_HI], au8Buffer[ADD_LO]);
+		if (start_address + len - 1 > u8regsize)
 			return EXC_ADDR_RANGE;
 		break;
 	}

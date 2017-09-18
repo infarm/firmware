@@ -40,7 +40,6 @@ void SwitchController::init(RelayController *r, LightController *d, DosingPumpCo
 
 	timerSerialLogFloodProtection.init(serialLogMessageIntervalMs);
 	timerDoorsModeDisable.init(openDoorsModeDisableIntervalMs, openDoorsModeDisableTimerCallback, this);
-	timerMaintenanceModeDisable.init(maintenanceModeDisableIntervalMs, maintenanceModeDisableTimerCallback, this);
 	timerSwitchDebouncer.init(switchDebouncerIntervalMs);
 	timerSwitchDebouncerMaintenance.init(switchDebouncerIntervalMs);
 	timerReturnToDefaultState.init(defaultStateIntervalMs, defaultStateTimerCallback, this);
@@ -132,14 +131,6 @@ void SwitchController::openDoorsModeDisableTimerCallback(BasicTimeout *t, void *
 	sc->openDoorsModeDisable();
 }
 
-void SwitchController::maintenanceModeDisableTimerCallback(BasicTimeout *t, void *data)
-{
-	(void)t;
-	SwitchController *sc = (SwitchController *)data;
-	sc->debugMessage(F("Forcing open doors mode to OFF"));
-	sc->maintenanceModeDisable();
-}
-
 void SwitchController::handleManualOverrides()
 {
 	if (!timerSwitchDebouncer.timeoutHasPassed())
@@ -195,11 +186,10 @@ bool SwitchController::isOpenDoorsModeActive()
 void SwitchController::maintenanceModeEnable()
 {
 	/* TODO: FlashMemoryController->markMaintenanceModeStarted(); */
-	/* TODO: ModBus->enableMaintenanceMode(); */
 	maintenanceMode = true;
 	debugMessage(F("Invoking maintenance mode"));
 	dc->signalMaintenanceOperationMode();
-	timerMaintenanceModeDisable.restart();
+	dp->allPumpsOff();
 }
 
 void SwitchController::maintenanceModeDisable()
@@ -207,7 +197,6 @@ void SwitchController::maintenanceModeDisable()
 	maintenanceMode = false;
 	debugMessage(F("Maintenance mode is finished"));
 	dc->signalNormalOperationMode();
-	timerMaintenanceModeDisable.stop();
 }
 
 void SwitchController::handleMaintenanceMode()
@@ -292,7 +281,6 @@ void SwitchController::tick()
 	timerSwitchDebouncerMaintenance.tick();
 	timerDoorsModeDisable.tick();
 	timerReturnToDefaultState.tick();
-	timerMaintenanceModeDisable.tick();
 	timerSerialLogFloodProtection.tick();
 
 	handleMaintenanceMode();

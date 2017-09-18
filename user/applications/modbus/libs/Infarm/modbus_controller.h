@@ -20,6 +20,11 @@ class ModbusController : public SerialDebugger
 	void handlePumps();
 	void handleWatchdog();
 	void handleRealTimeClock();
+	void handleLightSchedule();
+	uint16_t waterTankPressureSensorValue();
+	void handleWaterTankPressureSensor();
+	void handleMaintenanceModeState();
+	void handleMaintenanceModeStateOverride();
 	void init(RelayController *rc, LightController *dc, DosingPumpController *dp, SwitchController *s);
 	void tick();
 

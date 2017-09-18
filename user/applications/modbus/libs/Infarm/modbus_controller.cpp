@@ -10,10 +10,12 @@
 #if DEVICE_CONTROLLINO
 #include <Controllino.h>
 #define FB_PSU_PIN CONTROLLINO_SCREW_TERMINAL_DIGITAL_OUT_00
+#define SENSOR_PRESSURE_WATER_TANK_PIN CONTROLLINO_PIN_HEADER_ANALOG_ADC_IN_05
 #endif
 
 #if DEVICE_ARDUINO_MEGA
 #define FB_PSU_PIN 22
+#define SENSOR_PRESSURE_WATER_TANK_PIN A5
 #endif
 
 #define FB_WATCHDOG_TIMEOUT MINUTES_TO_MILLIS(3)
@@ -38,17 +40,13 @@ void ModbusController::init(RelayController *r, LightController *d, DosingPumpCo
 
 void ModbusController::handleSinglePump(enum DosingPump n, uint16_t timeout)
 {
-	cr.pumpSetTimerValue((enum DosingPump)n, 0);
-
-	if (dp->pumpIsOn(n)) {
-		debugMessage(F("Not starting %s pump, it's already on, remaining ON time %u ms"),
-			     cr.pumpName((enum DosingPump)n), dp->pumpOnRemainingTime(n));
+	if (sc->isMaintenanceModeActive()) {
+		debugMessage(F("Maintenance mode active, ignoring pump %s ON request"), cr.pumpName(n));
 		return;
 	}
 
-	debugMessage(F("Starting %s pump with off time %u ms"), cr.pumpName((enum DosingPump)n), timeout);
-	dp->pumpOn(n);
-	dp->pumpOffAfterTimeout(n, timeout);
+	cr.pumpSetTimerValue(n, 0);
+	dp->pumpOnAndOffAfterTimeoutWithLimits(n, timeout);
 }
 
 void ModbusController::handlePumps()
@@ -90,6 +88,75 @@ void ModbusController::handleWatchdog()
 	}
 }
 
+void ModbusController::handleLightSchedule()
+{
+	uint8_t hour = 0;
+	uint8_t intensity = 0;
+
+	if (cr.lightScheduleWriteIsRequested()) {
+		cr.lightScheduleValueGet(&hour, &intensity);
+		debugMessage(F("Setting light schedule hour=%02d intensity=%d%%"), hour, intensity);
+		dc->setLightIntensityPercentForHourAndStore(hour, intensity);
+
+		hour = 0;
+		intensity = 0;
+		cr.lightScheduleValueSet(hour, intensity);
+		cr.clearLightScheduleWriteRequest();
+	}
+
+	if (cr.lightScheduleReadIsRequested()) {
+		hour = 0;
+		intensity = 0;
+		cr.lightScheduleValueGet(&hour, &intensity);
+		intensity = dc->lightIntensityPercentForHour(hour);
+		debugMessage(F("Replying with light schedule hour=%02d intensity=%d%%"), hour, intensity);
+		cr.lightScheduleValueSet(hour, intensity);
+		cr.clearLightScheduleReadRequest();
+		cr.setLightScheduleDataAreReady();
+	}
+}
+
+uint16_t ModbusController::waterTankPressureSensorValue()
+{
+	return analogRead(SENSOR_PRESSURE_WATER_TANK_PIN);
+}
+
+void ModbusController::handleWaterTankPressureSensor()
+{
+	cr.waterTankPressureSensorValueSet(waterTankPressureSensorValue());
+}
+
+void ModbusController::handleMaintenanceModeState()
+{
+	if (sc->isMaintenanceModeActive())
+		cr.maintenanceModeEnable();
+	else
+		cr.maintenanceModeDisable();
+}
+
+void ModbusController::handleMaintenanceModeStateOverride()
+{
+	if (cr.maintenanceModeShouldBeEnabledByOverride()) {
+		cr.clearMaintenanceModeEnableViaOverride();
+		if (sc->isMaintenanceModeActive())
+			return;
+
+		debugMessage(F("Invoking maintenance mode via override"));
+		sc->maintenanceModeEnable();
+	}
+
+	if (cr.maintenanceModeShouldBeDisabledByOverride()) {
+		cr.clearMaintenanceModeDisableViaOverride();
+		if (!sc->isMaintenanceModeActive())
+			return;
+
+		debugMessage(F("Disabling maintenance mode via override"));
+		sc->maintenanceModeDisable();
+	}
+
+	handleMaintenanceModeState();
+}
+
 bool ModbusController::newMessageReceivedOnModbus()
 {
 	int r = slave.poll();
@@ -107,6 +174,8 @@ bool ModbusController::newMessageReceivedOnModbus()
 void ModbusController::tick()
 {
 	wdt.tick();
+	handleWaterTankPressureSensor();
+	handleMaintenanceModeState();
 
 	if (!newMessageReceivedOnModbus())
 		return;
@@ -114,4 +183,6 @@ void ModbusController::tick()
 	handlePumps();
 	handleWatchdog();
 	handleRealTimeClock();
+	handleLightSchedule();
+	handleMaintenanceModeStateOverride();
 }

@@ -43,10 +43,13 @@ class DosingPumpController : public SerialDebugger
 	void pumpWaterValveIntakeOn();
 	void pumpWaterValveIntakeOff();
 	void pumpWaterValveIntakeOffAfterTimeout(uint32_t timeout);
+	bool pumpOnTimeoutWithinLimit(uint8_t n, uint32_t timeout);
+	bool pumpOnTimeoutWithinLimit(enum DosingPump n, uint32_t timeout);
 	uint32_t pumpOnRemainingTime(enum DosingPump n);
 	uint32_t pumpOnRemainingTime(uint8_t n);
 	bool pumpOffAfterTimeout(enum DosingPump n, uint32_t timeout);
 	bool pumpOffAfterTimeout(uint8_t n, uint32_t timeout);
+	bool pumpOnAndOffAfterTimeoutWithLimits(enum DosingPump n, uint32_t timeout);
 	void handlePumpsOffAfterTimeout();
 	void tick();
 

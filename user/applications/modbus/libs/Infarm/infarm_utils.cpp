@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <stdarg.h>
 #include <Arduino.h>
 
 #include "infarm_utils.h"
@@ -22,7 +20,11 @@ void fa_show_progress(const char *bar, int width)
 	Serial.print(bar);
 	if ((++i % width) == 0) {
 		i = 0;
+#if defined(SPARK_PLATFORM)
+		Serial.write((uint8_t *)"\r\n", 2);
+#else
 		Serial.write("\r\n", 2);
+#endif
 	}
 }
 

@@ -10,7 +10,15 @@ class FarmModbusMaster : public FarmModbusUARTMaster
       public:
 	void setSlaveBusAddress(uint8_t address);
 	int slaveStartPump(enum DosingPump n, uint16_t onTimeMs);
+	int slaveReadFirmwareVersion();
+	int slaveReadWaterTankPressureSensor();
+	int slaveReadMaintenanceModeState();
+	int slaveEnableMaintenanceModeViaOverride();
+	int slaveDisableMaintenanceModeViaOverride();
 	int slaveFeedWatchdog();
+	int slaveSetLightIntensityScheduleForHour(uint8_t hour, uint8_t intensity);
+	int slaveRequestReadOfLightIntensityScheduleForHour(uint8_t hour);
+	int slaveUpdateLightIntensityScheduleRegistersState();
 	int slaveSetRealTimeClock(uint8_t hours, uint8_t minutes);
 	int slaveUpdatePumpState(enum DosingPump n);
 	int slaveSendModbusPacket();
@@ -22,7 +30,8 @@ class FarmModbusMaster : public FarmModbusUARTMaster
 
       protected:
 	int slaveUpdatePumpTimer(enum DosingPump n);
-	int slaveSendWriteRegisterModbusPacket(uint16_t address, uint16_t *reg);
+	int slaveSendWriteRegisterModbusPacket(uint16_t address, uint16_t *reg, uint8_t regCount);
+	int slaveSendReadRegisterModbusPacket(uint16_t address, uint16_t *reg, uint8_t regCount);
 
       private:
 	modbus_t modbusPacket;

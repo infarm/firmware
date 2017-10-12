@@ -14,6 +14,10 @@ void setup()
 {
 	d.enableDebug();
 	Serial.begin(115200);
+
+	while (!Serial.isConnected())
+		Particle.process();
+
 	master.enableDebug();
 	master.begin(115200);
 	cr.enableModbusMasterView();

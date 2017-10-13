@@ -19,7 +19,6 @@ void setup()
 		Particle.process();
 
 	master.setBusStandardRS485();
-	master.enableDebug();
 	master.begin(115200);
 	cr.enableModbusMasterView();
 	master.setSlaveRegisters(&cr);

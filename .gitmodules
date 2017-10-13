@@ -1,0 +1,3 @@
+[submodule "user/applications/modbus/libs/InfarmModbus"]
+	path = user/applications/modbus/libs/InfarmModbus
+	url = git@github.com:infarm/controllino-infarm-modbus.git

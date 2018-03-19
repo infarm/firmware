@@ -1,3 +1,116 @@
+## 0.8.0-rc.2
+
+### FEATURES
+
+- USB request handlers [#1444](https://github.com/particle-iot/firmware/pull/1444)
+- Out of heap system event and heap fragmentation detection [#1452](https://github.com/particle-iot/firmware/pull/1452)
+- Network and cloud diagnostics [#1424](https://github.com/particle-iot/firmware/pull/1424)
+- [Photon/P1] TCPClient: non-blocking, blocking, blocking with timeout writes support [#1485](https://github.com/particle-iot/firmware/pull/1485)
+- [Electron] adds UPSV handling to cellular_hal [#1480](https://github.com/particle-iot/firmware/pull/1480)
+
+### ENHANCEMENTS
+
+- Serialize access to the CRC peripheral (STM32F2xx) [#1465](https://github.com/particle-iot/firmware/pull/1465)
+- System.sleep() wake up reason [#1410](https://github.com/particle-iot/firmware/pull/1410)
+- System.sleep(): support for multiple wake up pins [#1405](https://github.com/particle-iot/firmware/pull/1405)
+- Disable WKP pin waking device up from `SLEEP_MODE_DEEP` [#1409](https://github.com/particle-iot/firmware/pull/1409)
+- [Photon/P1] Increase maximum supported number of simultaneously active TCP connections [#1350](https://github.com/particle-iot/firmware/pull/1350)
+- [Photon/P1] WiFi.dnsServerIP()/WiFi.dhcpServerIP() support [#1386](https://github.com/particle-iot/firmware/pull/1386)
+- Generalize FuelGauge to also use alternative I2C interfaces. [#1443](https://github.com/particle-iot/firmware/pull/1443)
+- Firmware update and access to internal flash via USB requests [#1456](https://github.com/particle-iot/firmware/pull/1456)
+- Added docs on local build setup [#1374](https://github.com/particle-iot/firmware/pull/1374)
+- Use 'using std::**' instead of define * std::* [#1258](https://github.com/particle-iot/firmware/pull/1258)
+- Only remake $(TARGET_BASE).elf el al. if necessary [#1223](https://github.com/particle-iot/firmware/pull/1223)
+
+### BUGFIXES
+
+- [Electron] Fix heap bounds build for system part1 [#1478](https://github.com/particle-iot/firmware/pull/1478)
+- [Electron] Guard cellular_command() with a global lock [#1415](https://github.com/particle-iot/firmware/pull/1415)
+- [Electron] Fix caching of the description CRCs in the backup RAM [#1413](https://github.com/particle-iot/firmware/pull/1413)
+- [Electron] connect_cancel() fix [#1464](https://github.com/particle-iot/firmware/pull/1464)
+- [Electron] DCD fixes [#1454](https://github.com/particle-iot/firmware/pull/1454)
+- [Electron] moves some newlib functions into part1 [#1471](https://github.com/particle-iot/firmware/pull/1471)
+- [Core] Fixes I2C slave mode [#1309](https://github.com/particle-iot/firmware/pull/1309)
+- [Virtual] Fixes virtual device running with UDP protocol [#1462](https://github.com/particle-iot/firmware/pull/1462)
+- Fix usage of an incorrect prerequisite name in program-* targets [#1463](https://github.com/particle-iot/firmware/pull/1463)
+- Fixed shadowing of write(const unint_8_t*, sizte_t) in USBKeyboard [#1372](https://github.com/particle-iot/firmware/pull/1372)
+
+### INTERNAL
+
+- Fixes some 0.8.0-rc.2 tests [#1476](https://github.com/particle-iot/firmware/pull/1476)
+- fixes the unit test build [#1474](https://github.com/particle-iot/firmware/pull/1474)
+- IS_CLAIMED request fixes [#1472](https://github.com/particle-iot/firmware/pull/1472)
+- Documents low level USB request completion notifications [#1475](https://github.com/particle-iot/firmware/pull/1475)
+- [Electron] Flash size optimizations [#1469](https://github.com/particle-iot/firmware/pull/1469)
+- Minor refactoring of the USB protocol implementation [#1473](https://github.com/particle-iot/firmware/pull/1473)
+
+
+## 0.7.0-rc.7
+
+### BUGFIX
+
+- [Photon] Regression with SoftAP and URL-encoded form query [#1432](https://github.com/spark/firmware/issues/1432)
+- Particle.connect() hard blocking since 0.6.1-rc.1 [#1399](https://github.com/spark/firmware/issues/1399)
+- [Electron] Cellular resolve does not return 0 / false when it receives bad DNS resolution related to bad cell service [#1304](https://github.com/spark/firmware/issues/1304) 
+- [Core] Use the device ID as the USB serial number [#1367](https://github.com/spark/firmware/issues/1367) 
+- [Electron] Fix heap bounds for system part 1 [#1478](https://github.com/particle-iot/firmware/pull/1478)
+- Fixed shadowing of `write(const unint_8_t*, sizte_t)` in USBKeyboard [#1372](https://github.com/particle-iot/firmware/pull/1372)
+
+
+## 0.8.0-rc.1
+
+## FEATURES
+
+- Low-latency interrupt handlers [#1394] (https://github.com/spark/firmware/pull/1394)
+- [Electron] Reworked power management [#1412](https://github.com/spark/firmware/pull/1412)
+- Battery State diagnostics [#1398](https://github.com/spark/firmware/pull/1398)
+- Battery charge diagnostics [#1395](https://github.com/spark/firmware/pull/1395)
+- RAM usage diagnostic sources data [#1411](https://github.com/spark/firmware/pull/1411)
+- Network Signal Quality/Strength rework and diagnostics [#1423](https://github.com/spark/firmware/pull/1423)
+- System uptime diagnoatics [#1393](https://github.com/spark/firmware/pull/1393)
+- Diagnostics for unacked messages and rate limited events [#1391](https://github.com/spark/firmware/pull/1391)
+- Network and Cloud diagnostics [#1424](https://github.com/spark/firmware/pull/1424)
+- Diagnostics service [#1390](https://github.com/spark/firmware/pull/1390)
+
+## ENHANCEMENTS
+
+- [Photon/P1] Wi-FI firmware compression [#1421](https://github.com/spark/firmware/pull/1421)
+- [Photon/P1] Moves Wi-Fi tester into application module [#1378](https://github.com/spark/firmware/pull/1378)
+
+## BUGFIXES
+
+- Cloud random seed not working [#1312](https://github.com/spark/firmware/issues/1312)
+- [Electron] Error handling in the data usage API [#1435](https://github.com/spark/firmware/pull/1435)
+
+
+## 0.7.0-rc.6
+
+### BUGFIX
+
+- [Electron] Add dependency in system-part-1 on 0.6.4 system-part-3 to prevent upgrades from 0.6.3 or earlier to avoid incompatibilties
+with these releases.
+
+## 0.7.0-rc.5
+
+### BUGFIX
+
+ - The device ID is output in lowercase in DFU mode. [#1432](https://github.com/spark/firmware/issues/1432)
+ - increase the DTLS buffer from 768 to 800 bytes, so that the system describe message is sent.
+ - remove rigid dependency check in bootloader that was causing DCT functions to not load in 0.8.0-rc.1 [#1436](https://github.com/spark/firmware/pull/1436)
+
+## 0.7.0-rc.4
+
+### ENHANCEMENTS
+
+ - USART Half-duplex enhancements [#1308](https://github.com/spark/firmware/pull/1380)
+
+### BUGFIX
+
+ - KRACK WPA2 security bugfix [#1420](https://github.com/spark/firmware/pull/1420)
+ - Monolithic build linker error [#1370](https://github.com/spark/firmware/pull/1370)
+ - 4-digit serial numbers had additional characters [#1380](https://github.com/spark/firmware/pull/1380)
+ 
+
 ## 0.7.0-rc.3
 
 ### DEPRECATED API
@@ -87,6 +200,39 @@
 - [`[PR #1323]`](https://github.com/spark/firmware/pull/1323) USB vendor requests should be executed on system thread instead of being processed in ISR.
 - [`[PR #1338]`](https://github.com/spark/firmware/pull/1338) Do not read or write feature flags from an ISR
 
+
+## 0.6.4
+
+### BUGFIXES
+
+- Downgrade bootloader functionality in 0.6.3 would enter an infinite loop after flashing system part 1 0.7.0-rc.X using OTA/serial. `particle flash --usb`/DFU was not affected.
+
+## 0.6.3
+
+### ENHANCEMENTS
+
+- Downgrade bootloader when downgrading from 0.7.0 or newer. [#1416](https://github.com/spark/firmware/pull/1416)
+
+### BUGFIXES
+
+- [KRACK WPA2 security fix](https://github.com/spark/firmware/pull/1419)
+
+
+## 0.6.4
+
+### BUGFIXES
+
+- Downgrade bootloader functionality in 0.6.3 would enter an infinite loop after flashing system part 1 0.7.0-rc.X using OTA/serial. `particle flash --usb`/DFU was not affected.
+
+## 0.6.3
+
+### ENHANCEMENTS
+
+- Downgrade bootloader when downgrading from 0.7.0 or newer. [#1416](https://github.com/spark/firmware/pull/1416)
+
+### BUGFIXES
+
+- [KRACK WPA2 security fix](https://github.com/spark/firmware/pull/1419)
 
 ## 0.6.2 (same as 0.6.2-rc.2)
 

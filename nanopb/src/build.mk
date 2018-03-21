@@ -8,6 +8,6 @@ CSRC += $(TARGET_NANOPB_SRC_LIB_PATH)/pb_common.c
 CSRC += $(TARGET_NANOPB_SRC_LIB_PATH)/pb_decode.c
 CSRC += $(TARGET_NANOPB_SRC_LIB_PATH)/pb_encode.c
 
-CPPFLAGS += -std=gnu++11
+CPPFLAGS += -std=gnu++1z
 
 LOG_MODULE_CATEGORY = nanopb

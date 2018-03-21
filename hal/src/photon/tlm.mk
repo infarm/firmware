@@ -5,5 +5,5 @@
 
 DEPENDENCIES += communication newlib_nano
 
-CPPFLAGS += -std=gnu++11
+CPPFLAGS += -std=gnu++1z
 

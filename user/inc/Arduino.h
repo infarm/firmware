@@ -18,10 +18,12 @@
 
 #include "math.h"
 
+#ifdef __cplusplus
+#else
 #ifndef isnan
 #error isnan is not defined please ensure this header is included before any STL headers
 #endif
-
+#endif // __cplusplus
 
 #include "avr/pgmspace.h"
 #include "spark_wiring_arduino_constants.h"
@@ -166,11 +168,11 @@ typedef volatile uint32_t RwReg;
 #ifdef __cplusplus
 
 #ifndef isnan
-using std::isnan
+using std::isnan;
 #endif
 
 #ifndef isinf
-using std::isinf
+using std::isinf;
 #endif
 
 
